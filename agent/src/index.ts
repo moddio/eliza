@@ -1,11 +1,11 @@
-import { PostgresDatabaseAdapter } from '@ai16z/adapter-postgres';
-import { SqliteDatabaseAdapter } from '@ai16z/adapter-sqlite';
-import { AutoClientInterface } from '@ai16z/client-auto';
-import { DirectClientInterface } from '@ai16z/client-direct';
-import { DiscordClientInterface } from '@ai16z/client-discord';
-import { TelegramClientInterface } from '@ai16z/client-telegram';
-import { TwitterClientInterface } from '@ai16z/client-twitter';
-import { FarcasterAgentClient } from '@ai16z/client-farcaster';
+import { PostgresDatabaseAdapter } from "@ai16z/adapter-postgres";
+import { SqliteDatabaseAdapter } from "@ai16z/adapter-sqlite";
+import { AutoClientInterface } from "@ai16z/client-auto";
+import { DirectClientInterface } from "@ai16z/client-direct";
+import { DiscordClientInterface } from "@ai16z/client-discord";
+import { TelegramClientInterface } from "@ai16z/client-telegram";
+import { TwitterClientInterface } from "@ai16z/client-twitter";
+import { FarcasterAgentClient } from "@ai16z/client-farcaster";
 import {
   AgentRuntime,
   CacheManager,
@@ -23,10 +23,10 @@ import {
   settings,
   stringToUuid,
   validateCharacterConfig,
-} from '@ai16z/eliza';
-import { zgPlugin } from '@ai16z/plugin-0g';
-import createGoatPlugin from '@ai16z/plugin-goat';
-import { bootstrapPlugin } from '@ai16z/plugin-bootstrap';
+} from "@ai16z/eliza";
+import { zgPlugin } from "@ai16z/plugin-0g";
+import createGoatPlugin from "@ai16z/plugin-goat";
+import { bootstrapPlugin } from "@ai16z/plugin-bootstrap";
 // import { intifacePlugin } from "@ai16z/plugin-intiface";
 import {
   coinbaseCommercePlugin,
@@ -35,39 +35,39 @@ import {
   tokenContractPlugin,
   webhookPlugin,
   advancedTradePlugin,
-} from '@ai16z/plugin-coinbase';
-import { confluxPlugin } from '@ai16z/plugin-conflux';
-import { imageGenerationPlugin } from '@ai16z/plugin-image-generation';
-import { evmPlugin } from '@ai16z/plugin-evm';
-import { createNodePlugin } from '@ai16z/plugin-node';
-import { solanaPlugin } from '@ai16z/plugin-solana';
-import { teePlugin, TEEMode } from '@ai16z/plugin-tee';
-import { aptosPlugin, TransferAptosToken } from '@ai16z/plugin-aptos';
-import { flowPlugin } from '@ai16z/plugin-flow';
-import Database from 'better-sqlite3';
-import fs from 'fs';
-import path from 'path';
-import readline from 'readline';
-import { fileURLToPath } from 'url';
-import yargs from 'yargs';
+} from "@ai16z/plugin-coinbase";
+import { confluxPlugin } from "@ai16z/plugin-conflux";
+import { imageGenerationPlugin } from "@ai16z/plugin-image-generation";
+import { evmPlugin } from "@ai16z/plugin-evm";
+import { createNodePlugin } from "@ai16z/plugin-node";
+import { solanaPlugin } from "@ai16z/plugin-solana";
+import { teePlugin, TEEMode } from "@ai16z/plugin-tee";
+import { aptosPlugin, TransferAptosToken } from "@ai16z/plugin-aptos";
+import { flowPlugin } from "@ai16z/plugin-flow";
+import Database from "better-sqlite3";
+import fs from "fs";
+import path from "path";
+import readline from "readline";
+import { fileURLToPath } from "url";
+import yargs from "yargs";
 
-import Fullmetal from 'fullmetal-agent';
+import Fullmetal from "fullmetal-agent";
 
 const getApiResponse = async (data, agentId, name, cb) => {
   // YOUR agent code to generate the resposne
   try {
-    const serverPort = parseInt(settings.SERVER_PORT || '3000');
+    const serverPort = parseInt(settings.SERVER_PORT || "3000");
     const startTime = Date.now();
     let tokenLength = 0;
     const response = await fetch(
       `http://localhost:${serverPort}/${agentId}/message`,
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text: data.prompt,
-          userId: 'user',
-          userName: 'User',
+          userId: "user",
+          userName: "User",
         }),
       }
     );
@@ -76,7 +76,7 @@ const getApiResponse = async (data, agentId, name, cb) => {
     if (result.length > 0) {
       const message = result[0];
       if (message) {
-        elizaLogger.log(`${'Agent'}: ${message.text}`);
+        elizaLogger.log(`${"Agent"}: ${message.text}`);
         tokenLength += 1;
         // cb({ token: message.text });
         const endTime = Date.now();
@@ -109,7 +109,7 @@ const getApiResponse = async (data, agentId, name, cb) => {
       }
     }
   } catch (error) {
-    console.error('Error fetching response:', error);
+    console.error("Error fetching response:", error);
   }
   // cb({ token: msg });
 };
@@ -135,31 +135,31 @@ export function parseArguments(): {
 } {
   try {
     return yargs(process.argv.slice(3))
-      .option('character', {
-        type: 'string',
-        description: 'Path to the character JSON file',
+      .option("character", {
+        type: "string",
+        description: "Path to the character JSON file",
       })
-      .option('characters', {
-        type: 'string',
-        description: 'Comma separated list of paths to character JSON files',
+      .option("characters", {
+        type: "string",
+        description: "Comma separated list of paths to character JSON files",
       })
       .parseSync();
   } catch (error) {
-    elizaLogger.error('Error parsing arguments:', error);
+    elizaLogger.error("Error parsing arguments:", error);
     return {};
   }
 }
 
 function tryLoadFile(filePath: string): string | null {
   try {
-    return fs.readFileSync(filePath, 'utf8');
+    return fs.readFileSync(filePath, "utf8");
   } catch (e) {
     return null;
   }
 }
 
 function isAllStrings(arr: unknown[]): boolean {
-  return Array.isArray(arr) && arr.every((item) => typeof item === 'string');
+  return Array.isArray(arr) && arr.every((item) => typeof item === "string");
 }
 
 export async function loadCharacters(
@@ -167,32 +167,32 @@ export async function loadCharacters(
   inputCharacterContent: object
 ): Promise<Character[]> {
   let characterPaths = charactersArg
-    ?.split(',')
+    ?.split(",")
     .map((filePath) => filePath.trim());
   const loadedCharacters = [];
 
-  if (charactersArg !== '' && characterPaths?.length > 0) {
+  if (charactersArg !== "" && characterPaths?.length > 0) {
     for (const characterPath of characterPaths) {
       let content = null;
-      let resolvedPath = '';
+      let resolvedPath = "";
 
       // Try different path resolutions in order
       const pathsToTry = [
         characterPath, // exact path as specified
         path.resolve(process.cwd(), characterPath), // relative to cwd
-        path.resolve(process.cwd(), 'agent', characterPath), // Add this
+        path.resolve(process.cwd(), "agent", characterPath), // Add this
         path.resolve(__dirname, characterPath), // relative to current script
-        path.resolve(__dirname, 'characters', path.basename(characterPath)), // relative to agent/characters
-        path.resolve(__dirname, '../characters', path.basename(characterPath)), // relative to characters dir from agent
+        path.resolve(__dirname, "characters", path.basename(characterPath)), // relative to agent/characters
+        path.resolve(__dirname, "../characters", path.basename(characterPath)), // relative to characters dir from agent
         path.resolve(
           __dirname,
-          '../../characters',
+          "../../characters",
           path.basename(characterPath)
         ), // relative to project root characters dir
       ];
 
       elizaLogger.info(
-        'Trying paths:',
+        "Trying paths:",
         pathsToTry.map((p) => ({
           path: p,
           exists: fs.existsSync(p),
@@ -211,7 +211,7 @@ export async function loadCharacters(
         elizaLogger.error(
           `Error loading character from ${characterPath}: File not found in any of the expected locations`
         );
-        elizaLogger.error('Tried the following paths:');
+        elizaLogger.error("Tried the following paths:");
         pathsToTry.forEach((p) => elizaLogger.error(` - ${p}`));
         // process.exit(1);
       }
@@ -222,7 +222,7 @@ export async function loadCharacters(
 
         // Handle plugins
         if (isAllStrings(character.plugins)) {
-          elizaLogger.info('Plugins are: ', character.plugins);
+          elizaLogger.info("Plugins are: ", character.plugins);
           const importedPlugins = await Promise.all(
             character.plugins.map(async (plugin) => {
               const importedPlugin = await import(plugin);
@@ -243,7 +243,7 @@ export async function loadCharacters(
     try {
       validateCharacterConfig(inputCharacterContent);
 
-      elizaLogger.info('Loading character', inputCharacterContent.name);
+      elizaLogger.info("Loading character", inputCharacterContent.name);
       loadedCharacters.push(inputCharacterContent);
     } catch (e) {
       elizaLogger.error(`Error parsing character from ${resolvedPath}: ${e}`);
@@ -251,7 +251,7 @@ export async function loadCharacters(
   }
 
   if (loadedCharacters.length === 0) {
-    elizaLogger.info('No characters found, using default character');
+    elizaLogger.info("No characters found, using default character");
     loadedCharacters.push(defaultCharacter);
   }
 
@@ -342,7 +342,7 @@ export function getTokenForProvider(
 
 function initializeDatabase(dataDir: string) {
   if (process.env.POSTGRES_URL) {
-    elizaLogger.info('Initializing PostgreSQL connection...');
+    elizaLogger.info("Initializing PostgreSQL connection...");
     const db = new PostgresDatabaseAdapter({
       connectionString: process.env.POSTGRES_URL,
       parseInputs: true,
@@ -351,16 +351,16 @@ function initializeDatabase(dataDir: string) {
     // Test the connection
     db.init()
       .then(() => {
-        elizaLogger.success('Successfully connected to PostgreSQL database');
+        elizaLogger.success("Successfully connected to PostgreSQL database");
       })
       .catch((error) => {
-        elizaLogger.error('Failed to connect to PostgreSQL:', error);
+        elizaLogger.error("Failed to connect to PostgreSQL:", error);
       });
 
     return db;
   } else {
     const filePath =
-      process.env.SQLITE_FILE ?? path.resolve(dataDir, 'db.sqlite');
+      process.env.SQLITE_FILE ?? path.resolve(dataDir, "db.sqlite");
     // ":memory:";
     const db = new SqliteDatabaseAdapter(new Database(filePath));
     return db;
@@ -377,32 +377,32 @@ export async function initializeClients(
   const clients: Record<string, any> = {};
   const clientTypes: string[] =
     character.clients?.map((str) => str.toLowerCase()) || [];
-  elizaLogger.log('initializeClients', clientTypes, 'for', character.name);
+  elizaLogger.log("initializeClients", clientTypes, "for", character.name);
 
-  if (clientTypes.includes('auto')) {
+  if (clientTypes.includes("auto")) {
     const autoClient = await AutoClientInterface.start(runtime);
     if (autoClient) clients.auto = autoClient;
   }
 
-  if (clientTypes.includes('discord')) {
+  if (clientTypes.includes("discord")) {
     const discordClient = await DiscordClientInterface.start(runtime);
     if (discordClient) clients.discord = discordClient;
   }
 
-  if (clientTypes.includes('telegram')) {
+  if (clientTypes.includes("telegram")) {
     const telegramClient = await TelegramClientInterface.start(runtime);
     if (telegramClient) clients.telegram = telegramClient;
   }
 
-  if (clientTypes.includes('twitter')) {
+  if (clientTypes.includes("twitter")) {
     TwitterClientInterface.enableSearch = !isFalsish(
-      getSecret(character, 'TWITTER_SEARCH_ENABLE')
+      getSecret(character, "TWITTER_SEARCH_ENABLE")
     );
     const twitterClient = await TwitterClientInterface.start(runtime);
     if (twitterClient) clients.twitter = twitterClient;
   }
 
-  if (clientTypes.includes('farcaster')) {
+  if (clientTypes.includes("farcaster")) {
     // why is this one different :(
     const farcasterClient = new FarcasterAgentClient(runtime);
     if (farcasterClient) {
@@ -411,7 +411,7 @@ export async function initializeClients(
     }
   }
 
-  elizaLogger.log('client keys', Object.keys(clients));
+  elizaLogger.log("client keys", Object.keys(clients));
 
   if (character.plugins?.length > 0) {
     for (const plugin of character.plugins) {
@@ -434,18 +434,18 @@ function isFalsish(input: any): boolean {
   }
 
   // Convert input to a string if it's not null or undefined
-  const value = input == null ? '' : String(input);
+  const value = input == null ? "" : String(input);
 
   // List of common falsish string representations
   const falsishValues = [
-    'false',
-    '0',
-    'no',
-    'n',
-    'off',
-    'null',
-    'undefined',
-    '',
+    "false",
+    "0",
+    "no",
+    "n",
+    "off",
+    "null",
+    "undefined",
+    "",
   ];
 
   // Check if the value (trimmed and lowercased) is in the falsish list
@@ -466,23 +466,23 @@ export async function createAgent(
 ): AgentRuntime {
   elizaLogger.success(
     elizaLogger.successesTitle,
-    'Creating runtime for character',
+    "Creating runtime for character",
     character.name
   );
 
   nodePlugin ??= createNodePlugin();
 
-  const teeMode = getSecret(character, 'TEE_MODE') || 'OFF';
-  const walletSecretSalt = getSecret(character, 'WALLET_SECRET_SALT');
+  const teeMode = getSecret(character, "TEE_MODE") || "OFF";
+  const walletSecretSalt = getSecret(character, "WALLET_SECRET_SALT");
 
   // Validate TEE configuration
   if (teeMode !== TEEMode.OFF && !walletSecretSalt) {
-    elizaLogger.error('WALLET_SECRET_SALT required when TEE_MODE is enabled');
-    throw new Error('Invalid TEE configuration');
+    elizaLogger.error("WALLET_SECRET_SALT required when TEE_MODE is enabled");
+    throw new Error("Invalid TEE configuration");
   }
 
   let goatPlugin: any | undefined;
-  if (getSecret(character, 'ALCHEMY_API_KEY')) {
+  if (getSecret(character, "ALCHEMY_API_KEY")) {
     goatPlugin = await createGoatPlugin((secret) =>
       getSecret(character, secret)
     );
@@ -497,29 +497,29 @@ export async function createAgent(
     // character.plugins are handled when clients are added
     plugins: [
       bootstrapPlugin,
-      getSecret(character, 'CONFLUX_CORE_PRIVATE_KEY') ? confluxPlugin : null,
+      getSecret(character, "CONFLUX_CORE_PRIVATE_KEY") ? confluxPlugin : null,
       nodePlugin,
-      getSecret(character, 'SOLANA_PUBLIC_KEY') ||
-      (getSecret(character, 'WALLET_PUBLIC_KEY') &&
-        !getSecret(character, 'WALLET_PUBLIC_KEY')?.startsWith('0x'))
+      getSecret(character, "SOLANA_PUBLIC_KEY") ||
+      (getSecret(character, "WALLET_PUBLIC_KEY") &&
+        !getSecret(character, "WALLET_PUBLIC_KEY")?.startsWith("0x"))
         ? solanaPlugin
         : null,
-      getSecret(character, 'EVM_PRIVATE_KEY') ||
-      (getSecret(character, 'WALLET_PUBLIC_KEY') &&
-        getSecret(character, 'WALLET_PUBLIC_KEY')?.startsWith('0x'))
+      getSecret(character, "EVM_PRIVATE_KEY") ||
+      (getSecret(character, "WALLET_PUBLIC_KEY") &&
+        getSecret(character, "WALLET_PUBLIC_KEY")?.startsWith("0x"))
         ? evmPlugin
         : null,
-      getSecret(character, 'ZEROG_PRIVATE_KEY') ? zgPlugin : null,
-      getSecret(character, 'COINBASE_COMMERCE_KEY')
+      getSecret(character, "ZEROG_PRIVATE_KEY") ? zgPlugin : null,
+      getSecret(character, "COINBASE_COMMERCE_KEY")
         ? coinbaseCommercePlugin
         : null,
-      getSecret(character, 'FAL_API_KEY') ||
-      getSecret(character, 'OPENAI_API_KEY') ||
-      getSecret(character, 'HEURIST_API_KEY')
+      getSecret(character, "FAL_API_KEY") ||
+      getSecret(character, "OPENAI_API_KEY") ||
+      getSecret(character, "HEURIST_API_KEY")
         ? imageGenerationPlugin
         : null,
-      ...(getSecret(character, 'COINBASE_API_KEY') &&
-      getSecret(character, 'COINBASE_PRIVATE_KEY')
+      ...(getSecret(character, "COINBASE_API_KEY") &&
+      getSecret(character, "COINBASE_PRIVATE_KEY")
         ? [
             coinbaseMassPaymentsPlugin,
             tradePlugin,
@@ -530,17 +530,17 @@ export async function createAgent(
       ...(teeMode !== TEEMode.OFF && walletSecretSalt
         ? [teePlugin, solanaPlugin]
         : []),
-      getSecret(character, 'COINBASE_API_KEY') &&
-      getSecret(character, 'COINBASE_PRIVATE_KEY') &&
-      getSecret(character, 'COINBASE_NOTIFICATION_URI')
+      getSecret(character, "COINBASE_API_KEY") &&
+      getSecret(character, "COINBASE_PRIVATE_KEY") &&
+      getSecret(character, "COINBASE_NOTIFICATION_URI")
         ? webhookPlugin
         : null,
-      getSecret(character, 'ALCHEMY_API_KEY') ? goatPlugin : null,
-      getSecret(character, 'FLOW_ADDRESS') &&
-      getSecret(character, 'FLOW_PRIVATE_KEY')
+      getSecret(character, "ALCHEMY_API_KEY") ? goatPlugin : null,
+      getSecret(character, "FLOW_ADDRESS") &&
+      getSecret(character, "FLOW_PRIVATE_KEY")
         ? flowPlugin
         : null,
-      getSecret(character, 'APTOS_PRIVATE_KEY') ? aptosPlugin : null,
+      getSecret(character, "APTOS_PRIVATE_KEY") ? aptosPlugin : null,
     ].filter(Boolean),
     providers: [],
     actions: [],
@@ -552,7 +552,7 @@ export async function createAgent(
 }
 
 function initializeFsCache(baseDir: string, character: Character) {
-  const cacheDir = path.resolve(baseDir, character.id, 'cache');
+  const cacheDir = path.resolve(baseDir, character.id, "cache");
 
   const cache = new CacheManager(new FsCacheAdapter(cacheDir));
   return cache;
@@ -575,7 +575,7 @@ async function startAgent(
     character.username ??= character.name;
 
     const token = getTokenForProvider(character.modelProvider, character);
-    const dataDir = path.join(__dirname, '../data');
+    const dataDir = path.join(__dirname, "../data");
 
     if (!fs.existsSync(dataDir)) {
       fs.mkdirSync(dataDir, { recursive: true });
@@ -608,31 +608,31 @@ async function startAgent(
     if (isDynamic) {
       const fullMetalConfig = {
         name: character.name,
-        apiKey: 'fk-sk-hr0PZ9KPXX7czxFc0V5B',
+        apiKey: "fk-sk-hr0PZ9KPXX7czxFc0V5B",
         models: [`ELIZA-${character.name}-OpenAI/gpt-4o`],
       };
 
       await new Promise((resolve) => setTimeout(resolve, 100));
       const fullmetalAgent = new Fullmetal(fullMetalConfig);
-      fullmetalAgent.socket.on('connect', async () => {
-        console.log('Socket ID:', fullmetalAgent.socket.id);
+      fullmetalAgent.socket.on("connect", async () => {
+        console.log("Socket ID:", fullmetalAgent.socket.id);
         fullmetalAgent.socket.connectionId = fullmetalAgent.socket.id;
         npc.socketId = fullmetalAgent.socket.id;
         // Optional: Update the status to 1 (processed) to avoid reprocessing
         npc.status = 1;
         await npc.save();
 
-        fullmetalAgent.socket.on('disconnect', async (reason) => {
+        fullmetalAgent.socket.on("disconnect", async (reason) => {
           console.log(
-            'Socket ID:',
+            "Socket ID:",
             fullmetalAgent.socket.connectionId,
             reason,
-            'disconnected'
+            "disconnected"
           );
           const npcData = await NPC.findOne({
             socketId: fullmetalAgent.socket.connectionId,
           });
-          npcData.socketId = '';
+          npcData.socketId = "";
           npcData.status = false;
           await npcData.save();
         });
@@ -642,7 +642,7 @@ async function startAgent(
         const npc = await NPC.findOne({
           socketId: fullmetalAgent.socket.connectionId,
         });
-        npc.socketId = '';
+        npc.socketId = "";
         npc.status = false;
         await npc.save();
       });
@@ -691,27 +691,27 @@ const startAgents = async () => {
       await startAgent(character, directClient, false);
     }
   } catch (error) {
-    elizaLogger.error('Error starting agents:', error);
+    elizaLogger.error("Error starting agents:", error);
   }
 
   function chat() {
-    const agentId = characters[0].name ?? 'Agent';
-    rl.question('You: ', async (input) => {
+    const agentId = characters[0].name ?? "Agent";
+    rl.question("You: ", async (input) => {
       await handleUserInput(input, agentId);
-      if (input.toLowerCase() !== 'exit') {
+      if (input.toLowerCase() !== "exit") {
         chat(); // Loop back to ask another question
       }
     });
   }
 
-  if (!args['non-interactive']) {
+  if (!args["non-interactive"]) {
     elizaLogger.log("Chat started. Type 'exit' to quit.");
     chat();
   }
 };
 
 startAgents().catch((error) => {
-  elizaLogger.error('Unhandled error in startAgents:', error);
+  elizaLogger.error("Unhandled error in startAgents:", error);
   //process.exit(1); // Exit the process after logging
 });
 
@@ -721,58 +721,55 @@ const rl = readline.createInterface({
 });
 
 async function handleUserInput(input, agentId) {
-  if (input.toLowerCase() === 'exit') {
+  if (input.toLowerCase() === "exit") {
     gracefulExit();
   }
 
   try {
-    const serverPort = parseInt(settings.SERVER_PORT || '3000');
+    const serverPort = parseInt(settings.SERVER_PORT || "3000");
 
     const response = await fetch(
       `http://localhost:${serverPort}/${agentId}/message`,
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text: input,
-          userId: 'user',
-          userName: 'User',
+          userId: "user",
+          userName: "User",
         }),
       }
     );
 
     const data = await response.json();
-    data.forEach((message) => elizaLogger.log(`${'Agent'}: ${message.text}`));
+    data.forEach((message) => elizaLogger.log(`${"Agent"}: ${message.text}`));
   } catch (error) {
-    console.error('Error fetching response:', error);
+    console.error("Error fetching response:", error);
   }
 }
 
 async function gracefulExit() {
-  elizaLogger.log('Terminating and cleaning up resources...');
+  elizaLogger.log("Terminating and cleaning up resources...");
   rl.close();
   process.exit(0);
 }
 
-rl.on('SIGINT', gracefulExit);
-rl.on('SIGTERM', gracefulExit);
+rl.on("SIGINT", gracefulExit);
+rl.on("SIGTERM", gracefulExit);
 
-import mongoose from 'mongoose';
-import cron from 'node-cron';
+import mongoose from "mongoose";
+import cron from "node-cron";
 
 // MongoDB connection
-mongoose.connect(
-  'mongodb://fullmetal:D5fB9bn5rRw3lf8@45.76.169.148:27017/fullmetal?directConnection=true&serverSelectionTimeoutMS=2000&authSource=admin&appName=mongosh+2.0.0',
-  {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  }
-);
+mongoose.connect(settings.FULLMETAL_DATABASE, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 
 const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'MongoDB connection error:'));
-db.once('open', () => {
-  console.log('Connected to MongoDB');
+db.on("error", console.error.bind(console, "MongoDB connection error:"));
+db.once("open", () => {
+  console.log("Connected to MongoDB");
 });
 
 // Define the NPC schema and model
@@ -797,13 +794,13 @@ const npcSchema = new mongoose.Schema({
   // Add other relevant fields if necessary
 });
 
-const NPC = mongoose.model('npc', npcSchema);
+const NPC = mongoose.model("npc", npcSchema);
 let loadedNPCCharacter: any = [];
 
 await NPC.updateMany({}, { status: false });
 
 // Cron job: Runs every minute
-cron.schedule('*/10 * * * * *', async () => {
+cron.schedule("*/10 * * * * *", async () => {
   //console.log("Cron job started...", new Date());
   try {
     // Fetch all characters with status = 0
@@ -825,7 +822,7 @@ cron.schedule('*/10 * * * * *', async () => {
             console.log(`Character ${npc._id} updated successfully`);
           }
           // Validate the character JSON
-          await loadCharacters('', character);
+          await loadCharacters("", character);
 
           await new Promise((resolve) => setTimeout(resolve, 100));
           // Execute the startAgent method with the validated character
@@ -844,7 +841,7 @@ cron.schedule('*/10 * * * * *', async () => {
           console.log(`*****************************************************`);
         } catch (error) {
           npc.status = 0;
-          npc.socketId = '';
+          npc.socketId = "";
           await npc.save();
           elizaLogger.error(
             `Error processing character ${npc._id}-${npc.name}: ${error.message}`
@@ -853,6 +850,6 @@ cron.schedule('*/10 * * * * *', async () => {
       }
     }
   } catch (error) {
-    console.error('Error in cron job:', error.message);
+    console.error("Error in cron job:", error.message);
   }
 });
