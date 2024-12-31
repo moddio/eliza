@@ -21,7 +21,7 @@ import {
     parseJsonArrayFromText,
     parseJSONObjectFromText,
     parseShouldRespondFromText,
-    parseActionResponseFromText,
+    parseActionResponseFromText
 } from "./parsing.ts";
 import settings from "./settings.ts";
 import {
@@ -33,7 +33,7 @@ import {
     ModelProviderName,
     ServiceType,
     SearchResponse,
-    ActionResponse,
+    ActionResponse
 } from "./types.ts";
 import { fal } from "@fal-ai/client";
 
@@ -55,13 +55,11 @@ export async function generateText({
     context,
     modelClass,
     stop,
-    customSystemPrompt,
 }: {
     runtime: IAgentRuntime;
     context: string;
     modelClass: string;
     stop?: string[];
-    customSystemPrompt?: string;
 }): Promise<string> {
     if (!context) {
         console.error("generateText context is empty");
@@ -148,22 +146,11 @@ export async function generateText({
 
     elizaLogger.info("Selected model:", model);
 
-    const modelConfiguration = runtime.character?.settings?.modelConfig;
-    const temperature =
-        modelConfiguration?.temperature ||
-        models[provider].settings.temperature;
-    const frequency_penalty =
-        modelConfiguration?.frequency_penalty ||
-        models[provider].settings.frequency_penalty;
-    const presence_penalty =
-        modelConfiguration?.presence_penalty ||
-        models[provider].settings.presence_penalty;
-    const max_context_length =
-        modelConfiguration?.maxInputTokens ||
-        models[provider].settings.maxInputTokens;
-    const max_response_length =
-        modelConfiguration?.max_response_length ||
-        models[provider].settings.maxOutputTokens;
+    const temperature = models[provider].settings.temperature;
+    const frequency_penalty = models[provider].settings.frequency_penalty;
+    const presence_penalty = models[provider].settings.presence_penalty;
+    const max_context_length = models[provider].settings.maxInputTokens;
+    const max_response_length = models[provider].settings.maxOutputTokens;
 
     const apiKey = runtime.token;
 
@@ -189,8 +176,7 @@ export async function generateText({
             case ModelProviderName.LLAMACLOUD:
             case ModelProviderName.NANOGPT:
             case ModelProviderName.HYPERBOLIC:
-            case ModelProviderName.TOGETHER:
-            case ModelProviderName.AKASH_CHAT_API: {
+            case ModelProviderName.TOGETHER: {
                 elizaLogger.debug("Initializing OpenAI model.");
                 const openai = createOpenAI({
                     apiKey,
@@ -458,7 +444,6 @@ export async function generateText({
                     model: heurist.languageModel(model),
                     prompt: context,
                     system:
-                        customSystemPrompt ??
                         runtime.character.system ??
                         settings.SYSTEM_PROMPT ??
                         undefined,
@@ -552,7 +537,7 @@ export async function generateText({
                 elizaLogger.debug("Initializing Venice model.");
                 const venice = createOpenAI({
                     apiKey: apiKey,
-                    baseURL: endpoint,
+                    baseURL: endpoint
                 });
 
                 const { text: veniceResponse } = await aiGenerateText({
@@ -812,7 +797,7 @@ export async function generateTextArray({
     }
 }
 
-export async function generateObjectDeprecated({
+export async function generateObjectDEPRECATED({
     runtime,
     context,
     modelClass,
@@ -822,7 +807,7 @@ export async function generateObjectDeprecated({
     modelClass: string;
 }): Promise<any> {
     if (!context) {
-        elizaLogger.error("generateObjectDeprecated context is empty");
+        elizaLogger.error("generateObjectDEPRECATED context is empty");
         return null;
     }
     let retryDelay = 1000;
@@ -949,8 +934,6 @@ export const generateImage = async (
         seed?: number;
         modelId?: string;
         jobId?: string;
-        stylePreset?: string;
-        hideWatermark?: boolean;
     },
     runtime: IAgentRuntime
 ): Promise<{
@@ -966,33 +949,13 @@ export const generateImage = async (
     });
 
     const apiKey =
-    runtime.imageModelProvider === runtime.modelProvider
-        ? runtime.token
-        : (() => {
-            // First try to match the specific provider
-            switch (runtime.imageModelProvider) {
-                case ModelProviderName.HEURIST:
-                    return runtime.getSetting("HEURIST_API_KEY");
-                case ModelProviderName.TOGETHER:
-                    return runtime.getSetting("TOGETHER_API_KEY");
-                case ModelProviderName.FAL:
-                    return runtime.getSetting("FAL_API_KEY");
-                case ModelProviderName.OPENAI:
-                    return runtime.getSetting("OPENAI_API_KEY");
-                case ModelProviderName.VENICE:
-                    return runtime.getSetting("VENICE_API_KEY");
-                case ModelProviderName.LIVEPEER:
-                    return runtime.getSetting("LIVEPEER_GATEWAY_URL");
-                default:
-                    // If no specific match, try the fallback chain
-                    return (runtime.getSetting("HEURIST_API_KEY") ??
-                           runtime.getSetting("TOGETHER_API_KEY") ??
-                           runtime.getSetting("FAL_API_KEY") ??
-                           runtime.getSetting("OPENAI_API_KEY") ??
-                           runtime.getSetting("VENICE_API_KEY"))??
-                           runtime.getSetting("LIVEPEER_GATEWAY_URL");
-            }
-        })();
+        runtime.imageModelProvider === runtime.modelProvider
+            ? runtime.token
+            : (runtime.getSetting("HEURIST_API_KEY") ??
+              runtime.getSetting("TOGETHER_API_KEY") ??
+              runtime.getSetting("FAL_API_KEY") ??
+              runtime.getSetting("OPENAI_API_KEY"));
+
     try {
         if (runtime.imageModelProvider === ModelProviderName.HEURIST) {
             const response = await fetch(
@@ -1101,12 +1064,7 @@ export const generateImage = async (
                 num_inference_steps: modelSettings?.steps ?? 50,
                 guidance_scale: data.guidanceScale || 3.5,
                 num_images: data.count,
-                enable_safety_checker:
-                    runtime.getSetting("FAL_AI_ENABLE_SAFETY_CHECKER") ===
-                    "true",
-                safety_tolerance: Number(
-                    runtime.getSetting("FAL_AI_SAFETY_TOLERANCE") || "2"
-                ),
+                enable_safety_checker: true,
                 output_format: "png" as const,
                 seed: data.seed ?? 6252023,
                 ...(runtime.getSetting("FAL_AI_LORA_PATH")
@@ -1143,101 +1101,6 @@ export const generateImage = async (
 
             const base64s = await Promise.all(base64Promises);
             return { success: true, data: base64s };
-        } else if (runtime.imageModelProvider === ModelProviderName.VENICE) {
-            const response = await fetch(
-                "https://api.venice.ai/api/v1/image/generate",
-                {
-                    method: "POST",
-                    headers: {
-                        Authorization: `Bearer ${apiKey}`,
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        model: data.modelId || "fluently-xl",
-                        prompt: data.prompt,
-                        negative_prompt: data.negativePrompt,
-                        width: data.width,
-                        height: data.height,
-                        steps: data.numIterations,
-                        seed: data.seed,
-                        style_preset: data.stylePreset,
-                        hide_watermark: data.hideWatermark,
-                    }),
-                }
-            );
-
-            const result = await response.json();
-
-            if (!result.images || !Array.isArray(result.images)) {
-                throw new Error("Invalid response format from Venice AI");
-            }
-
-            const base64s = result.images.map((base64String) => {
-                if (!base64String) {
-                    throw new Error(
-                        "Empty base64 string in Venice AI response"
-                    );
-                }
-                return `data:image/png;base64,${base64String}`;
-            });
-
-            return { success: true, data: base64s };
-
-        } else if (runtime.imageModelProvider === ModelProviderName.LIVEPEER) {
-            if (!apiKey) {
-                throw new Error("Livepeer Gateway is not defined");
-            }
-            try {
-                const baseUrl = new URL(apiKey);
-                if (!baseUrl.protocol.startsWith('http')) {
-                    throw new Error("Invalid Livepeer Gateway URL protocol");
-                }
-                const response = await fetch(`${baseUrl.toString()}text-to-image`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        model_id: data.modelId || "ByteDance/SDXL-Lightning",
-                        prompt: data.prompt,
-                        width: data.width || 1024,
-                        height: data.height || 1024
-                    })
-                });
-                const result = await response.json();
-                if (!result.images?.length) {
-                    throw new Error("No images generated");
-                }
-                const base64Images = await Promise.all(
-                    result.images.map(async (image) => {
-                        console.log("imageUrl console log", image.url);
-                        let imageUrl;
-                        if (image.url.includes("http")) {
-                            imageUrl = image.url;
-                        } else {
-                            imageUrl = `${apiKey}${image.url}`;
-                        }
-                        const imageResponse = await fetch(imageUrl);
-                        if (!imageResponse.ok) {
-                            throw new Error(
-                                `Failed to fetch image: ${imageResponse.statusText}`
-                            );
-                        }
-                        const blob = await imageResponse.blob();
-                        const arrayBuffer = await blob.arrayBuffer();
-                        const base64 = Buffer.from(arrayBuffer).toString("base64");
-                        return `data:image/jpeg;base64,${base64}`;
-                    })
-                );
-                return {
-                    success: true,
-                    data: base64Images
-                };
-            } catch (error) {
-                console.error(error);
-                return { success: false, error: error };
-            }
-
         } else {
             let targetSize = `${data.width}x${data.height}`;
             if (
@@ -1313,10 +1176,6 @@ export const generateWebSearch = async (
                 api_key: apiKey,
                 query,
                 include_answer: true,
-                max_results: 3, // 5 (default)
-                topic: "general", // "general"(default) "news"
-                search_depth: "basic", // "basic"(default) "advanced"
-                include_images: false, // false (default) true
             }),
         });
 
@@ -1366,7 +1225,7 @@ interface ModelSettings {
  * @returns {Promise<any[]>} - A promise that resolves to an array of generated objects.
  * @throws {Error} - Throws an error if the provider is unsupported or if generation fails.
  */
-export const generateObject = async ({
+export const generateObjectV2 = async ({
     runtime,
     context,
     modelClass,
@@ -1377,7 +1236,7 @@ export const generateObject = async ({
     mode = "json",
 }: GenerationOptions): Promise<GenerateObjectResult<unknown>> => {
     if (!context) {
-        const errorMessage = "generateObject context is empty";
+        const errorMessage = "generateObjectV2 context is empty";
         console.error(errorMessage);
         throw new Error(errorMessage);
     }
@@ -1463,17 +1322,15 @@ export async function handleProvider(
         case ModelProviderName.LLAMACLOUD:
         case ModelProviderName.TOGETHER:
         case ModelProviderName.NANOGPT:
-        case ModelProviderName.AKASH_CHAT_API:
             return await handleOpenAI(options);
         case ModelProviderName.ANTHROPIC:
-        case ModelProviderName.CLAUDE_VERTEX:
             return await handleAnthropic(options);
         case ModelProviderName.GROK:
             return await handleGrok(options);
         case ModelProviderName.GROQ:
             return await handleGroq(options);
         case ModelProviderName.LLAMALOCAL:
-            return await generateObjectDeprecated({
+            return await generateObjectDEPRECATED({
                 runtime,
                 context,
                 modelClass,
@@ -1734,10 +1591,7 @@ export async function generateTweetActions({
                 context,
                 modelClass,
             });
-            console.debug(
-                "Received response from generateText for tweet actions:",
-                response
-            );
+            console.debug("Received response from generateText for tweet actions:", response);
             const { actions } = parseActionResponseFromText(response.trim());
             if (actions) {
                 console.debug("Parsed tweet actions:", actions);

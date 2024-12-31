@@ -208,8 +208,6 @@ export type Models = {
     [ModelProviderName.NANOGPT]: Model;
     [ModelProviderName.HYPERBOLIC]: Model;
     [ModelProviderName.VENICE]: Model;
-    [ModelProviderName.AKASH_CHAT_API]: Model;
-    [ModelProviderName.LIVEPEER]: Model;
 };
 
 /**
@@ -238,8 +236,6 @@ export enum ModelProviderName {
     NANOGPT = "nanogpt",
     HYPERBOLIC = "hyperbolic",
     VENICE = "venice",
-    AKASH_CHAT_API = "akash_chat_api",
-    LIVEPEER = "livepeer",
 }
 
 /**
@@ -419,9 +415,6 @@ export interface Action {
 
     /** Validation function */
     validate: Validator;
-
-    /** Whether to suppress the initial message when this action is used */
-    suppressInitialMessage?: boolean;
 }
 
 /**
@@ -568,9 +561,6 @@ export type Media = {
 
     /** Text content */
     text: string;
-
-    /** Content type */
-    contentType?: string;
 };
 
 /**
@@ -615,27 +605,13 @@ export type Plugin = {
  */
 export enum Clients {
     DISCORD = "discord",
-    DIRECT = "direct",
+// you can't specify this in characters
+// all characters are registered with this
+//    DIRECT = "direct",
     TWITTER = "twitter",
     TELEGRAM = "telegram",
     FARCASTER = "farcaster",
-    LENS = "lens",
-    AUTO = "auto",
-    SLACK = "slack",
 }
-
-export interface IAgentConfig {
-    [key: string]: string;
-}
-
-export interface ModelConfiguration {
-    temperature?: number;
-    max_response_length?: number;
-    frequency_penalty?: number;
-    presence_penalty?: number;
-    maxInputTokens?: number;
-}
-
 /**
  * Configuration for an agent character
  */
@@ -670,23 +646,17 @@ export type Character = {
         continueMessageHandlerTemplate?: string;
         evaluationTemplate?: string;
         twitterSearchTemplate?: string;
-        twitterActionTemplate?: string;
         twitterPostTemplate?: string;
         twitterMessageHandlerTemplate?: string;
         twitterShouldRespondTemplate?: string;
         farcasterPostTemplate?: string;
-        lensPostTemplate?: string;
         farcasterMessageHandlerTemplate?: string;
-        lensMessageHandlerTemplate?: string;
         farcasterShouldRespondTemplate?: string;
-        lensShouldRespondTemplate?: string;
         telegramMessageHandlerTemplate?: string;
         telegramShouldRespondTemplate?: string;
         discordVoiceHandlerTemplate?: string;
         discordShouldRespondTemplate?: string;
         discordMessageHandlerTemplate?: string;
-        slackMessageHandlerTemplate?: string;
-        slackShouldRespondTemplate?: string;
     };
 
     /** Character biography */
@@ -720,20 +690,6 @@ export type Character = {
     settings?: {
         secrets?: { [key: string]: string };
         intiface?: boolean;
-        imageSettings?: {
-            steps?: number;
-            width?: number;
-            height?: number;
-            negativePrompt?: string;
-            numIterations?: number;
-            guidanceScale?: number;
-            seed?: number;
-            modelId?: string;
-            jobId?: string;
-            count?: number;
-            stylePreset?: string;
-            hideWatermark?: boolean;
-        };
         voice?: {
             model?: string; // For VITS
             url?: string; // Legacy VITS support
@@ -748,7 +704,6 @@ export type Character = {
             };
         };
         model?: string;
-        modelConfig?: ModelConfiguration;
         embeddingModel?: string;
         chains?: {
             evm?: any[];
@@ -762,7 +717,6 @@ export type Character = {
         discord?: {
             shouldIgnoreBotMessages?: boolean;
             shouldIgnoreDirectMessages?: boolean;
-            shouldRespondOnlyToMentions?: boolean;
             messageSimilarityThreshold?: number;
             isPartOfTeam?: boolean;
             teamAgentIds?: string[];
@@ -772,25 +726,6 @@ export type Character = {
         telegram?: {
             shouldIgnoreBotMessages?: boolean;
             shouldIgnoreDirectMessages?: boolean;
-            shouldRespondOnlyToMentions?: boolean;
-            shouldOnlyJoinInAllowedGroups?: boolean;
-            allowedGroupIds?: string[];
-            messageSimilarityThreshold?: number;
-            isPartOfTeam?: boolean;
-            teamAgentIds?: string[];
-            teamLeaderId?: string;
-            teamMemberInterestKeywords?: string[];
-        };
-        slack?: {
-            shouldIgnoreBotMessages?: boolean;
-            shouldIgnoreDirectMessages?: boolean;
-        };
-        gitbook?: {
-            keywords?: {
-                projectTerms?: string[];
-                generalQueries?: string[];
-            };
-            documentTriggers?: string[];
         };
     };
 
@@ -808,10 +743,6 @@ export type Character = {
         screenName: string;
         bio: string;
         nicknames?: string[];
-    };
-    /** Optional NFT prompt */
-    nft?: {
-        prompt: string;
     };
 };
 
@@ -1028,12 +959,6 @@ export type CacheOptions = {
     expires?: number;
 };
 
-export enum CacheStore {
-    REDIS = "redis",
-    DATABASE = "database",
-    FILESYSTEM = "filesystem",
-}
-
 export interface ICacheManager {
     get<T = unknown>(key: string): Promise<T | undefined>;
     set<T>(key: string, value: T, options?: CacheOptions): Promise<void>;
@@ -1213,17 +1138,12 @@ export interface IPdfService extends Service {
 }
 
 export interface IAwsS3Service extends Service {
-    uploadFile(
-        imagePath: string,
-        subDirectory: string,
-        useSignedUrl: boolean,
-        expiresIn: number
-    ): Promise<{
+    uploadFile(imagePath: string, useSignedUrl: boolean, expiresIn: number ): Promise<{
         success: boolean;
         url?: string;
         error?: string;
     }>;
-    generateSignedUrl(fileName: string, expiresIn: number): Promise<string>;
+    generateSignedUrl(fileName: string, expiresIn: number): Promise<string>
 }
 
 export type SearchResult = {
@@ -1253,8 +1173,6 @@ export enum ServiceType {
     PDF = "pdf",
     INTIFACE = "intiface",
     AWS_S3 = "aws_s3",
-    BUTTPLUG = "buttplug",
-    SLACK = "slack",
 }
 
 export enum LoggingLevel {
@@ -1273,8 +1191,4 @@ export interface ActionResponse {
     retweet: boolean;
     quote?: boolean;
     reply?: boolean;
-}
-
-export interface ISlackService extends Service {
-    client: any;
 }

@@ -1,17 +1,17 @@
 {
   "name": "eliza-client",
   "private": true,
-  "version": "0.1.7-alpha.2",
+  "version": "0.1.5-alpha.1",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host",
     "build": "vite build",
     "check-types": "tsc --noEmit",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@elizaos/core": "workspace:*",
+    "@ai16z/eliza": "workspace:*",
     "@radix-ui/react-dialog": "1.1.2",
     "@radix-ui/react-separator": "1.1.0",
     "@radix-ui/react-slot": "1.1.0",

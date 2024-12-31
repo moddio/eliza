@@ -1,21 +1,19 @@
 import { ByteArray, formatEther, parseEther, type Hex } from "viem";
 import {
     composeContext,
-    generateObjectDeprecated,
+    generateObjectDEPRECATED,
     HandlerCallback,
     ModelClass,
     type IAgentRuntime,
     type Memory,
     type State,
-} from "@elizaos/core";
+} from "@ai16z/eliza";
 
 import { initWalletProvider, WalletProvider } from "../providers/wallet";
 import type { Transaction, TransferParams } from "../types";
 import { transferTemplate } from "../templates";
 
 export { transferTemplate };
-
-// Exported for tests
 export class TransferAction {
     constructor(private walletProvider: WalletProvider) {}
 
@@ -23,12 +21,6 @@ export class TransferAction {
         console.log(
             `Transferring: ${params.amount} tokens to (${params.toAddress} on ${params.fromChain})`
         );
-
-        if (!params.data) {
-            params.data = "0x";
-        }
-
-        this.walletProvider.switchChain(params.fromChain);
 
         const walletClient = this.walletProvider.getWalletClient(
             params.fromChain
@@ -41,12 +33,12 @@ export class TransferAction {
                 value: parseEther(params.amount),
                 data: params.data as Hex,
                 kzg: {
-                    blobToKzgCommitment: function (_: ByteArray): ByteArray {
+                    blobToKzgCommitment: function (blob: ByteArray): ByteArray {
                         throw new Error("Function not implemented.");
                     },
                     computeBlobKzgProof: function (
-                        _blob: ByteArray,
-                        _commitment: ByteArray
+                        blob: ByteArray,
+                        commitment: ByteArray
                     ): ByteArray {
                         throw new Error("Function not implemented.");
                     },
@@ -81,10 +73,10 @@ const buildTransferDetails = async (
 
     const contextWithChains = context.replace(
         "SUPPORTED_CHAINS",
-        chains.map((item) => `"${item}"`).join("|")
+        chains.toString()
     );
 
-    const transferDetails = (await generateObjectDeprecated({
+    const transferDetails = (await generateObjectDEPRECATED({
         runtime,
         context: contextWithChains,
         modelClass: ModelClass.SMALL,
@@ -109,36 +101,34 @@ export const transferAction = {
     description: "Transfer tokens between addresses on the same chain",
     handler: async (
         runtime: IAgentRuntime,
-        _message: Memory,
+        message: Memory,
         state: State,
-        _options: any,
+        options: any,
         callback?: HandlerCallback
     ) => {
-        console.log("Transfer action handler called");
-        const walletProvider = initWalletProvider(runtime);
-        const action = new TransferAction(walletProvider);
-
-        // Compose transfer context
-        const paramOptions = await buildTransferDetails(
-            state,
-            runtime,
-            walletProvider
-        );
-
         try {
-            const transferResp = await action.transfer(paramOptions);
+            const walletProvider = initWalletProvider(runtime);
+            const action = new TransferAction(walletProvider);
+            const transferDetails = await buildTransferDetails(
+                state,
+                runtime,
+                walletProvider
+            );
+            const tx = await action.transfer(transferDetails);
+
             if (callback) {
                 callback({
-                    text: `Successfully transferred ${paramOptions.amount} tokens to ${paramOptions.toAddress}\nTransaction Hash: ${transferResp.hash}`,
+                    text: `Successfully transferred ${formatEther(tx.value)} tokens to ${tx.to}\nTransaction hash: ${tx.hash}\nChain: ${transferDetails.fromChain}`,
                     content: {
                         success: true,
-                        hash: transferResp.hash,
-                        amount: formatEther(transferResp.value),
-                        recipient: transferResp.to,
-                        chain: paramOptions.fromChain,
+                        hash: tx.hash,
+                        amount: formatEther(tx.value),
+                        recipient: tx.to,
+                        chain: transferDetails.fromChain,
                     },
                 });
             }
+
             return true;
         } catch (error) {
             console.error("Error during token transfer:", error);
