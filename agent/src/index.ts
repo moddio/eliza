@@ -761,16 +761,10 @@ import mongoose from "mongoose";
 import cron from "node-cron";
 
 // MongoDB connection
-mongoose.connect(settings.FULLMETAL_DATABASE, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
-
-const db = mongoose.connection;
-db.on("error", console.error.bind(console, "MongoDB connection error:"));
-db.once("open", () => {
-  console.log("Connected to MongoDB");
-});
+mongoose
+  .connect(settings.FULLMETAL_DATABASE)
+  .then(() => console.log("Connected to MongoDB"))
+  .catch((error) => console.error("MongoDB connection error:", error));
 
 // Define the NPC schema and model
 const npcSchema = new mongoose.Schema({
