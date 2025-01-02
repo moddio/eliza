@@ -83,7 +83,7 @@ const getApiResponse = async (data, agentId, name, cb) => {
         const elapsedTimeInSeconds = (endTime - startTime) / 1000;
         const tokensPerSecond = tokenLength / elapsedTimeInSeconds;
         cb({
-          //token: message.text,
+          token: null,
           completed: true,
           model: name,
           elapsedTime: elapsedTimeInSeconds.toFixed(2),
