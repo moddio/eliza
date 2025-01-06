@@ -694,6 +694,9 @@ async function startAgent(
                         }
                     );
                 });
+            } else {
+                npc.status = 1;
+                await npc.save();
             }
         }
 
