@@ -824,6 +824,9 @@ const npcSchema = new mongoose.Schema({
     socketId: {
         type: String,
     },
+    agentType: {
+        type: String,
+    },
     // Add other relevant fields if necessary
 });
 
