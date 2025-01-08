@@ -643,7 +643,7 @@ async function startAgent(
             const fullMetalConfig = {
                 name: character.name,
                 apiKey: "fk-sk-hr0PZ9KPXX7czxFc0V5B",
-                models: [`ELIZA-${character.name}-OpenAI/gpt-4o`],
+                models: [`${character.name}-OpenAI/gpt-4o`],
             };
 
             await new Promise((resolve) => setTimeout(resolve, 100));
