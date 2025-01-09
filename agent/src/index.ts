@@ -644,7 +644,7 @@ async function startAgent(
                 name: character.name,
                 apiKey: "fk-sk-hr0PZ9KPXX7czxFc0V5B",
                 models: [`${character.name}-OpenAI/gpt-4o`],
-                restartOnDisconnect: true,
+                restartOnDisconnect: false,
             };
 
             await new Promise((resolve) => setTimeout(resolve, 100));
