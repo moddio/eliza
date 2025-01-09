@@ -77,13 +77,13 @@ const getApiResponse = async (data, agentId, name, cb) => {
             if (message) {
                 elizaLogger.log(`${"Agent"}: ${message.text}`);
                 tokenLength += 1;
-                cb({ token: message.text });
+                //cb({ token: message.text });
                 const endTime = Date.now();
                 // Calculate the elapsed time in seconds
                 const elapsedTimeInSeconds = (endTime - startTime) / 1000;
                 const tokensPerSecond = tokenLength / elapsedTimeInSeconds;
                 cb({
-                    token: null,
+                    token: message.text,
                     completed: true,
                     model: name,
                     elapsedTime: elapsedTimeInSeconds.toFixed(2),
