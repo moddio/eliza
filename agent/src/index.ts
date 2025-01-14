@@ -671,7 +671,7 @@ async function startAgent(
                         });
                         if (npcData) {
                             console.log(
-                                `${npc.name} with ${npc.socketId} has been disconnected`
+                                `${npcData.name} with ${npcData.socketId} has been disconnected`
                             );
                             npcData.socketId = "";
                             npcData.status = false;
