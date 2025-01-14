@@ -669,9 +669,18 @@ async function startAgent(
                         const npcData = await NPC.findOne({
                             socketId: fullmetalAgent.socket.connectionId,
                         });
-                        npcData.socketId = "";
-                        npcData.status = false;
-                        await npcData.save();
+                        if (npcData) {
+                            console.log(
+                                `${npc.name} with ${npc.socketId} has been disconnected`
+                            );
+                            npcData.socketId = "";
+                            npcData.status = false;
+                            await npcData.save();
+                        } else {
+                            console.log(
+                                `No record found for ${fullmetalAgent.socket.connectionId} socketId`
+                            );
+                        }
                     });
                 });
 
