@@ -645,65 +645,66 @@ async function startAgent(
                 apiKey: "fk-sk-hr0PZ9KPXX7czxFc0V5B",
                 models: [`${character.name}-OpenAI/gpt-4o`],
                 restartOnDisconnect: false,
+                npc
             };
 
             await new Promise((resolve) => setTimeout(resolve, 100));
             if (npc.agentType === "moddio" || npc.agentType === "api") {
                 const fullmetalAgent = new Fullmetal(fullMetalConfig);
-                fullmetalAgent.socket.on("connect", async () => {
-                    console.log("Socket ID:", fullmetalAgent.socket.id);
-                    fullmetalAgent.socket.connectionId =
-                        fullmetalAgent.socket.id;
-                    npc.socketId = fullmetalAgent.socket.id;
-                    // Optional: Update the status to 1 (processed) to avoid reprocessing
-                    npc.status = 1;
-                    await npc.save();
-                });
+                // fullmetalAgent.socket.on("connect", async () => {
+                //     console.log("Socket ID:", fullmetalAgent.socket.id);
+                //     fullmetalAgent.socket.connectionId =
+                //         fullmetalAgent.socket.id;
+                //     npc.socketId = fullmetalAgent.socket.id;
+                //     // Optional: Update the status to 1 (processed) to avoid reprocessing
+                //     npc.status = 1;
+                //     await npc.save();
+                // });
 
-                fullmetalAgent.socket.on("reconnect", async () => {
-                    console.log("Reconnected Socket ID:", fullmetalAgent.socket.id);
-                    fullmetalAgent.socket.connectionId =
-                        fullmetalAgent.socket.id;
-                    npc.socketId = fullmetalAgent.socket.id;
-                    // Optional: Update the status to 1 (processed) to avoid reprocessing
-                    npc.status = 1;
-                    await npc.save();
-                });
+                // fullmetalAgent.socket.on("reconnect", async () => {
+                //     console.log("Reconnected Socket ID:", fullmetalAgent.socket.id);
+                //     fullmetalAgent.socket.connectionId =
+                //         fullmetalAgent.socket.id;
+                //     npc.socketId = fullmetalAgent.socket.id;
+                //     // Optional: Update the status to 1 (processed) to avoid reprocessing
+                //     npc.status = 1;
+                //     await npc.save();
+                // });
 
 
 
-                fullmetalAgent.socket.on("disconnect", async (reason) => {
-                    console.log(
-                        "Socket ID:",
-                        fullmetalAgent.socket.connectionId,
-                        reason,
-                        "disconnected"
-                    );
-                    const npcData = await NPC.findOne({
-                        socketId: fullmetalAgent.socket.connectionId,
-                    });
-                    if (npcData) {
-                        console.log(
-                            `${npcData.name} with ${npcData.socketId} has been disconnected`
-                        );
-                        npcData.socketId = "";
-                        npcData.status = false;
-                        await npcData.save();
-                    } else {
-                        console.log(
-                            `No record found for ${fullmetalAgent.socket.connectionId} socketId`
-                        );
-                    }
-                });
+                // fullmetalAgent.socket.on("disconnect", async (reason) => {
+                //     console.log(
+                //         "Socket ID:",
+                //         fullmetalAgent.socket.connectionId,
+                //         reason,
+                //         "disconnected"
+                //     );
+                //     const npcData = await NPC.findOne({
+                //         socketId: fullmetalAgent.socket.connectionId,
+                //     });
+                //     if (npcData) {
+                //         console.log(
+                //             `${npcData.name} with ${npcData.socketId} has been disconnected`
+                //         );
+                //         npcData.socketId = "";
+                //         npcData.status = false;
+                //         await npcData.save();
+                //     } else {
+                //         console.log(
+                //             `No record found for ${fullmetalAgent.socket.connectionId} socketId`
+                //         );
+                //     }
+                // });
 
-                fullmetalAgent.onError(async (error) => {
-                    const npc = await NPC.findOne({
-                        socketId: fullmetalAgent.socket.connectionId,
-                    });
-                    npc.socketId = "";
-                    npc.status = false;
-                    await npc.save();
-                });
+                // fullmetalAgent.onError(async (error) => {
+                //     const npc = await NPC.findOne({
+                //         socketId: fullmetalAgent.socket.connectionId,
+                //     });
+                //     npc.socketId = "";
+                //     npc.status = false;
+                //     await npc.save();
+                // });
 
                 fullmetalAgent.onPrompt(async (data) => {
                     await getApiResponse(
