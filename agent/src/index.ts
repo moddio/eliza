@@ -665,6 +665,46 @@ async function startAgent(
                         }
                     );
                 });
+
+                fullmetalAgent.socket.on("disconnect", async (reason) => {
+                    console.log(
+                        "Socket ID:",
+                        fullmetalAgent.socket.connectionId,
+                        reason,
+                        "disconnected"
+                    );
+                    const npcData = await NPC.findOneAndUpdate(
+                        { _id: npc._id },
+                        { $set: { socketId: "", status: false } },
+                        { new: true }
+                    );
+                    if (npcData) {
+                        console.log(
+                            `${npcData.name} with ${npcData.socketId} has been disconnected`
+                        );
+                    } else {
+                        console.log(
+                            `No record found for ${fullmetalAgent.socket.connectionId} socketId`
+                        );
+                    }
+                });
+
+                fullmetalAgent.onError(async (error) => {
+                    const npcData = await NPC.findOneAndUpdate(
+                        { _id: npc._id },
+                        { $set: { socketId: "", status: false } },
+                        { new: true }
+                    );
+                    if (npcData) {
+                        console.log(
+                            `${npcData.name} with ${npcData.socketId} has been disconnected on error`
+                        );
+                    } else {
+                        console.log(
+                            `No record found for ${fullmetalAgent.socket.connectionId} socketId on error event`
+                        );
+                    }
+                });
             } else {
                 npc.status = 1;
                 await npc.save();
