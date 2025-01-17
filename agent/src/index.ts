@@ -645,11 +645,12 @@ async function startAgent(
                 apiKey: "fk-sk-hr0PZ9KPXX7czxFc0V5B",
                 models: [`${character.name}-OpenAI/gpt-4o`],
                 restartOnDisconnect: false,
-                npc
+                npc,
             };
 
             await new Promise((resolve) => setTimeout(resolve, 100));
             if (npc.agentType === "moddio" || npc.agentType === "api") {
+                console.log("**************NPC DATA**************", npc);
                 const fullmetalAgent = new Fullmetal(fullMetalConfig);
                 // fullmetalAgent.socket.on("connect", async () => {
                 //     console.log("Socket ID:", fullmetalAgent.socket.id);
@@ -670,8 +671,6 @@ async function startAgent(
                 //     npc.status = 1;
                 //     await npc.save();
                 // });
-
-
 
                 // fullmetalAgent.socket.on("disconnect", async (reason) => {
                 //     console.log(
