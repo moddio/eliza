@@ -658,30 +658,42 @@ async function startAgent(
                     // Optional: Update the status to 1 (processed) to avoid reprocessing
                     npc.status = 1;
                     await npc.save();
+                });
 
-                    fullmetalAgent.socket.on("disconnect", async (reason) => {
-                        console.log(
-                            "Socket ID:",
-                            fullmetalAgent.socket.connectionId,
-                            reason,
-                            "disconnected"
-                        );
-                        const npcData = await NPC.findOne({
-                            socketId: fullmetalAgent.socket.connectionId,
-                        });
-                        if (npcData) {
-                            console.log(
-                                `${npcData.name} with ${npcData.socketId} has been disconnected`
-                            );
-                            npcData.socketId = "";
-                            npcData.status = false;
-                            await npcData.save();
-                        } else {
-                            console.log(
-                                `No record found for ${fullmetalAgent.socket.connectionId} socketId`
-                            );
-                        }
+                fullmetalAgent.socket.on("reconnect", async () => {
+                    console.log("Reconnected Socket ID:", fullmetalAgent.socket.id);
+                    fullmetalAgent.socket.connectionId =
+                        fullmetalAgent.socket.id;
+                    npc.socketId = fullmetalAgent.socket.id;
+                    // Optional: Update the status to 1 (processed) to avoid reprocessing
+                    npc.status = 1;
+                    await npc.save();
+                });
+
+
+
+                fullmetalAgent.socket.on("disconnect", async (reason) => {
+                    console.log(
+                        "Socket ID:",
+                        fullmetalAgent.socket.connectionId,
+                        reason,
+                        "disconnected"
+                    );
+                    const npcData = await NPC.findOne({
+                        socketId: fullmetalAgent.socket.connectionId,
                     });
+                    if (npcData) {
+                        console.log(
+                            `${npcData.name} with ${npcData.socketId} has been disconnected`
+                        );
+                        npcData.socketId = "";
+                        npcData.status = false;
+                        await npcData.save();
+                    } else {
+                        console.log(
+                            `No record found for ${fullmetalAgent.socket.connectionId} socketId`
+                        );
+                    }
                 });
 
                 fullmetalAgent.onError(async (error) => {
