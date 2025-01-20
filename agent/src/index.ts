@@ -651,63 +651,68 @@ async function startAgent(
             };
 
             await new Promise((resolve) => setTimeout(resolve, 100));
-            if (npc.agentType === "api") {
-                const fullmetalAgent = new Fullmetal(fullMetalConfig);
+            try {
+                const summary = JSON.parse(npc.summary)
+                if (npc.agentType === "api" && summary.bio.length) {
+                    const fullmetalAgent = new Fullmetal(fullMetalConfig);
 
-                fullmetalAgent.onPrompt(async (data) => {
-                    await getApiResponse(
-                        data,
-                        runtime.agentId,
-                        character.name,
-                        async (response) => {
-                            // response= {token:'', completed:false, speed:10, model:''Wizard-Vicuna-7B-Uncensored'}
-                            fullmetalAgent.sendResponse(response);
+                    fullmetalAgent.onPrompt(async (data) => {
+                        await getApiResponse(
+                            data,
+                            runtime.agentId,
+                            character.name,
+                            async (response) => {
+                                // response= {token:'', completed:false, speed:10, model:''Wizard-Vicuna-7B-Uncensored'}
+                                fullmetalAgent.sendResponse(response);
+                            }
+                        );
+                    });
+
+                    fullmetalAgent.socket.on("disconnect", async (reason) => {
+                        console.log(
+                            "Socket ID:",
+                            fullmetalAgent.socket.connectionId,
+                            reason,
+                            "disconnected"
+                        );
+                        const npcData = await NPC.findOneAndUpdate(
+                            { _id: npc._id },
+                            { $set: { socketId: "", status: false } },
+                            { new: true }
+                        );
+                        if (npcData) {
+                            console.log(
+                                `${npcData.name} with ${npcData.socketId} has been disconnected`
+                            );
+                        } else {
+                            console.log(
+                                `No record found for ${fullmetalAgent.socket.connectionId} socketId`
+                            );
                         }
-                    );
-                });
+                    });
 
-                fullmetalAgent.socket.on("disconnect", async (reason) => {
-                    console.log(
-                        "Socket ID:",
-                        fullmetalAgent.socket.connectionId,
-                        reason,
-                        "disconnected"
-                    );
-                    const npcData = await NPC.findOneAndUpdate(
-                        { _id: npc._id },
-                        { $set: { socketId: "", status: false } },
-                        { new: true }
-                    );
-                    if (npcData) {
-                        console.log(
-                            `${npcData.name} with ${npcData.socketId} has been disconnected`
+                    fullmetalAgent.onError(async (error) => {
+                        const npcData = await NPC.findOneAndUpdate(
+                            { _id: npc._id },
+                            { $set: { socketId: "", status: false } },
+                            { new: true }
                         );
-                    } else {
-                        console.log(
-                            `No record found for ${fullmetalAgent.socket.connectionId} socketId`
-                        );
-                    }
-                });
-
-                fullmetalAgent.onError(async (error) => {
-                    const npcData = await NPC.findOneAndUpdate(
-                        { _id: npc._id },
-                        { $set: { socketId: "", status: false } },
-                        { new: true }
-                    );
-                    if (npcData) {
-                        console.log(
-                            `${npcData.name} with ${npcData.socketId} has been disconnected on error`
-                        );
-                    } else {
-                        console.log(
-                            `No record found for ${fullmetalAgent.socket.connectionId} socketId on error event`
-                        );
-                    }
-                });
-            } else {
-                npc.status = 1;
-                await npc.save();
+                        if (npcData) {
+                            console.log(
+                                `${npcData.name} with ${npcData.socketId} has been disconnected on error`
+                            );
+                        } else {
+                            console.log(
+                                `No record found for ${fullmetalAgent.socket.connectionId} socketId on error event`
+                            );
+                        }
+                    });
+                } else {
+                    npc.status = 1;
+                    await npc.save();
+                }
+            } catch(ex) {
+                console.log('ERROR: Summary is not valid', ex);
             }
         }
 
