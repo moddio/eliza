@@ -653,7 +653,7 @@ async function startAgent(
             await new Promise((resolve) => setTimeout(resolve, 100));
             try {
                 const summary = JSON.parse(npc.summary)
-                if (npc.agentType === "api" && summary.bio.length) {
+                if (npc.agentType === "api") {
                     const fullmetalAgent = new Fullmetal(fullMetalConfig);
 
                     fullmetalAgent.onPrompt(async (data) => {
