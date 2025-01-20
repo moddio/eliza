@@ -651,7 +651,7 @@ async function startAgent(
             };
 
             await new Promise((resolve) => setTimeout(resolve, 100));
-            if (npc.agentType === "moddio" || npc.agentType === "api") {
+            if (npc.agentType === "api") {
                 const fullmetalAgent = new Fullmetal(fullMetalConfig);
 
                 fullmetalAgent.onPrompt(async (data) => {
