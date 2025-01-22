@@ -668,6 +668,16 @@ async function startAgent(
                         );
                     });
 
+                    fullmetalAgent.socket.on("connect", async () => {
+                        console.log("Socket ID:", fullmetalAgent.socket.id);
+                        fullmetalAgent.socket.connectionId =
+                            fullmetalAgent.socket.id;
+                        npc.socketId = fullmetalAgent.socket.id;
+                        // Optional: Update the status to 1 (processed) to avoid reprocessing
+                        npc.status = 1;
+                        await npc.save();
+                    });
+
                     fullmetalAgent.socket.on("disconnect", async (reason) => {
                         console.log(
                             "Socket ID:",
