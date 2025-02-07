@@ -21,7 +21,7 @@ import {
     parseJsonArrayFromText,
     parseJSONObjectFromText,
     parseShouldRespondFromText,
-    parseActionResponseFromText
+    parseActionResponseFromText,
 } from "./parsing.ts";
 import settings from "./settings.ts";
 import {
@@ -33,7 +33,7 @@ import {
     ModelProviderName,
     ServiceType,
     SearchResponse,
-    ActionResponse
+    ActionResponse,
 } from "./types.ts";
 import { fal } from "@fal-ai/client";
 
@@ -183,7 +183,7 @@ export async function generateText({
                     baseURL: endpoint,
                     fetch: runtime.fetch,
                 });
-
+                console.log("[DEBUG] Calling aiGenrateText");
                 const { text: openaiResponse } = await aiGenerateText({
                     model: openai.languageModel(model),
                     prompt: context,
@@ -192,7 +192,7 @@ export async function generateText({
                         settings.SYSTEM_PROMPT ??
                         undefined,
                     temperature: temperature,
-                    maxTokens: max_response_length,
+                    maxTokens: model !== "o3-mini" ? max_response_length : null,
                     frequencyPenalty: frequency_penalty,
                     presencePenalty: presence_penalty,
                 });
@@ -537,7 +537,7 @@ export async function generateText({
                 elizaLogger.debug("Initializing Venice model.");
                 const venice = createOpenAI({
                     apiKey: apiKey,
-                    baseURL: endpoint
+                    baseURL: endpoint,
                 });
 
                 const { text: veniceResponse } = await aiGenerateText({
@@ -1591,7 +1591,10 @@ export async function generateTweetActions({
                 context,
                 modelClass,
             });
-            console.debug("Received response from generateText for tweet actions:", response);
+            console.debug(
+                "Received response from generateText for tweet actions:",
+                response
+            );
             const { actions } = parseActionResponseFromText(response.trim());
             if (actions) {
                 console.debug("Parsed tweet actions:", actions);
