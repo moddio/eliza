@@ -640,20 +640,22 @@ async function startAgent(
         // report to console
         elizaLogger.success(`Started ${character.name} as ${runtime.agentId}`);
         if (isDynamic) {
-            const fullMetalConfig = {
-                name: character.name,
-                apiKey: "fk-sk-hr0PZ9KPXX7czxFc0V5B",
-                models: [
-                    `${npc.name.toLowerCase().replace(/\s+/g, "-")}-OpenAI/gpt-4o`,
-                ],
-                restartOnDisconnect: false,
-                npc,
-            };
-
             await new Promise((resolve) => setTimeout(resolve, 100));
             try {
                 const summary = JSON.parse(npc.summary);
                 if (npc.agentType === "api" || npc.agentType === "moddio") {
+                    const fullMetalConfig = {
+                        name: character.name,
+                        apiKey: "fk-sk-hr0PZ9KPXX7czxFc0V5B",
+                        models: [
+                            npc.agentType === "api"
+                                ? `${npc.name.toLowerCase().replace(/\s+/g, "-")}-OpenAI/gpt-4o`
+                                : `moddio-bot-${summary?.modelProvider ? summary.modelProvider : ""}`,
+                        ],
+                        restartOnDisconnect: false,
+                        npc,
+                    };
+
                     const fullmetalAgent = new Fullmetal(fullMetalConfig);
 
                     fullmetalAgent.onPrompt(async (data) => {
