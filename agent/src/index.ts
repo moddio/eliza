@@ -650,7 +650,7 @@ async function startAgent(
                         models: [
                             npc.agentType === "api"
                                 ? `${npc.name.toLowerCase().replace(/\s+/g, "-")}-OpenAI/gpt-4o`
-                                : `moddio-bot-${summary?.modelProvider ? summary.modelProvider : ""}`,
+                                : `${npc.name.toLowerCase().replace(/\s+/g, "-")}-moddio-bot-${summary?.modelProvider ? summary.modelProvider : ""}`,
                         ],
                         restartOnDisconnect: false,
                         npc,
