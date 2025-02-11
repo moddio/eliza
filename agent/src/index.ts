@@ -652,8 +652,8 @@ async function startAgent(
 
             await new Promise((resolve) => setTimeout(resolve, 100));
             try {
-                const summary = JSON.parse(npc.summary)
-                if (npc.agentType === "api") {
+                const summary = JSON.parse(npc.summary);
+                if (npc.agentType === "api" || npc.agentType === "moddio") {
                     const fullmetalAgent = new Fullmetal(fullMetalConfig);
 
                     fullmetalAgent.onPrompt(async (data) => {
@@ -721,8 +721,8 @@ async function startAgent(
                     npc.status = 1;
                     await npc.save();
                 }
-            } catch(ex) {
-                console.log('ERROR: Summary is not valid', ex);
+            } catch (ex) {
+                console.log("ERROR: Summary is not valid", ex);
             }
         }
 
