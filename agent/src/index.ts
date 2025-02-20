@@ -916,7 +916,10 @@ cron.schedule("*/10 * * * * *", async () => {
                         false,
                         npc
                     );
-                    loadedNPCCharacter[npc._id] = runtimeAgent;
+                    loadedNPCCharacter[npc._id] = {
+                        ...runtimeAgent,
+                        createdAt: Date.now(),
+                    };
                     console.log(
                         "loadedNPCCharacter",
                         loadedNPCCharacter[npc._id].agentId
@@ -955,6 +958,7 @@ const getAgentInfo = () => {
         npc_id: Object.keys(loadedNPCCharacter).find(
             (key) => loadedNPCCharacter[key] === agent
         ),
+        stats: agent.stats,
     }));
     return data;
 };
@@ -1016,6 +1020,29 @@ app.post("/prompt", async (req, res) => {
         }
         // Get the runtime agent for the character
         const runtimeAgent = loadedNPCCharacter[agent?.npc_id];
+
+        // Update agent statistics
+        const startTime = Date.now();
+        const currentStats = runtimeAgent.stats || {
+            promptCount: 0,
+            totalResponseTime: 0,
+        };
+
+        // After processing, update the stats
+        loadedNPCCharacter[agent.npc_id] = {
+            ...runtimeAgent,
+            stats: {
+                promptCount: currentStats.promptCount + 1,
+                totalResponseTime:
+                    currentStats.totalResponseTime + (Date.now() - startTime),
+                lastResponseTime: Date.now(),
+                promptResponseAvgTime: Math.round(
+                    (currentStats.totalResponseTime +
+                        (Date.now() - startTime)) /
+                        (currentStats.promptCount + 1)
+                ),
+            },
+        };
 
         if (!runtimeAgent) {
             return res
