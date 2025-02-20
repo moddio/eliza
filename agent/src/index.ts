@@ -1023,11 +1023,11 @@ app.post("/prompt", async (req, res) => {
             });
         }
         // Get the runtime agent for the character
-        const runtimeAgent = loadedNPCCharacter[agent?.npc_id];
+        const runtimeAgent = loadedNPCCharacter[agent?.npcId];
 
         // Update agent statistics
         const startTime = Date.now();
-        const currentStats = runtimeAgent.stats || {
+        const currentStats = runtimeAgent?.stats || {
             promptCount: 0,
             totalResponseTime: 0,
         };
