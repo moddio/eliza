@@ -918,7 +918,11 @@ cron.schedule("*/10 * * * * *", async () => {
                     );
                     loadedNPCCharacter[npc._id] = {
                         ...runtimeAgent,
-                        createdAt: Date.now(),
+                        stats: {
+                            createdAt: Date.now(),
+                            promptCount: 0,
+                            totalResponseTime: 0,
+                        },
                     };
                     console.log(
                         "loadedNPCCharacter",
