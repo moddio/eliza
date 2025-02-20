@@ -980,7 +980,7 @@ const getAgentInfoByName = (agentName: string) => {
     return {
         agentId: agent.agentId,
         name: agent.character?.name,
-        npc_id: Object.keys(loadedNPCCharacter).find(
+        npcId: Object.keys(loadedNPCCharacter).find(
             (key) => loadedNPCCharacter[key] === agent
         ),
     };
