@@ -1044,19 +1044,20 @@ app.post("/prompt", async (req, res) => {
         res.json(response);
         // After processing, update the stats
         loadedNPCCharacter[agent.npc_id] = {
-             ...runtimeAgent,
-             stats: {
-                 promptCount: currentStats.promptCount + 1,
-                 totalResponseTime:
-                     currentStats.totalResponseTime + (Date.now() - startTime),
-                 lastResponseTime: Date.now(),
-                 promptResponseAvgTime: Math.round(
-                     (currentStats.totalResponseTime +
-                         (Date.now() - startTime)) /
-                         (currentStats.promptCount + 1)
-                 ),
-             },
-         };
+            ...runtimeAgent,
+            stats: {
+                promptCount: currentStats.promptCount + 1,
+                totalResponseTime:
+                    currentStats.totalResponseTime + (Date.now() - startTime),
+                lastResponseTime: Date.now(),
+                promptResponseAvgTime: Math.round(
+                    (currentStats.totalResponseTime +
+                        (Date.now() - startTime)) /
+                        1000 /
+                        (currentStats.promptCount + 1)
+                ),
+            },
+        };
     } catch (error) {
         elizaLogger.error(`Error processing prompt: ${error.message}`);
         res.status(500).json({
