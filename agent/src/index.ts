@@ -53,7 +53,12 @@ import yargs from "yargs";
 
 import Fullmetal from "fullmetal-agent";
 
-const getApiResponse = async (data, agentId, name, cb) => {
+const getApiResponse = async (
+    data,
+    agentId,
+    name,
+    cb?: (response: any) => Promise<void>
+) => {
     // YOUR agent code to generate the resposne
     try {
         const serverPort = parseInt(settings.SERVER_PORT || "3000");
@@ -72,6 +77,7 @@ const getApiResponse = async (data, agentId, name, cb) => {
             }
         );
         const result = await response.json();
+        let promptResponse;
         if (result.length > 0) {
             const message = result[0];
             if (message) {
@@ -82,7 +88,7 @@ const getApiResponse = async (data, agentId, name, cb) => {
                 // Calculate the elapsed time in seconds
                 const elapsedTimeInSeconds = (endTime - startTime) / 1000;
                 const tokensPerSecond = tokenLength / elapsedTimeInSeconds;
-                cb({
+                promptResponse = {
                     token: message.text,
                     completed: true,
                     model: name,
@@ -90,13 +96,13 @@ const getApiResponse = async (data, agentId, name, cb) => {
                     speed: tokensPerSecond.toFixed(2),
                     promptLength: data.prompt.length,
                     responseLength: tokenLength,
-                });
+                };
             } else {
                 const endTime = Date.now();
                 // Calculate the elapsed time in seconds
                 const elapsedTimeInSeconds = (endTime - startTime) / 1000;
                 const tokensPerSecond = tokenLength / elapsedTimeInSeconds;
-                cb({
+                promptResponse = {
                     token: null,
                     completed: true,
                     model: name,
@@ -104,8 +110,13 @@ const getApiResponse = async (data, agentId, name, cb) => {
                     speed: tokensPerSecond.toFixed(2),
                     promptLength: data.prompt.length,
                     responseLength: tokenLength,
-                });
+                };
             }
+        }
+        if (cb) {
+            cb(promptResponse);
+        } else {
+            return promptResponse;
         }
     } catch (error) {
         console.error("Error fetching response:", error);
@@ -864,14 +875,14 @@ const npcSchema = new mongoose.Schema({
 const NPC = mongoose.model("npc", npcSchema);
 let loadedNPCCharacter: any = [];
 
-await NPC.updateMany({}, { status: false });
+await NPC.updateMany({ agentType: "api" }, { status: false });
 
 // Cron job: Runs every minute
 cron.schedule("*/10 * * * * *", async () => {
     //console.log("Cron job started...", new Date());
     try {
         // Fetch all characters with status = 0
-        const npcs = await NPC.find({ status: 0 });
+        const npcs = await NPC.find({ status: false, agentType: "api" });
 
         if (npcs.length) {
             // const directClient = await DirectClientInterface.start();
@@ -902,10 +913,14 @@ cron.schedule("*/10 * * * * *", async () => {
                     const runtimeAgent = await startAgent(
                         character,
                         directClient,
-                        true,
+                        false,
                         npc
                     );
                     loadedNPCCharacter[npc._id] = runtimeAgent;
+                    console.log(
+                        "loadedNPCCharacter",
+                        loadedNPCCharacter[npc._id].agentId
+                    );
                     console.log(
                         `*****************************************************`
                     );
@@ -916,6 +931,8 @@ cron.schedule("*/10 * * * * *", async () => {
                     console.log(
                         `*****************************************************`
                     );
+                    npc.status = 1;
+                    await npc.save();
                 } catch (error) {
                     npc.status = 0;
                     npc.socketId = "";
@@ -929,4 +946,98 @@ cron.schedule("*/10 * * * * *", async () => {
     } catch (error) {
         console.error("Error in cron job:", error.message);
     }
+});
+
+const getAgentInfo = () => {
+    const data = Object.values(loadedNPCCharacter).map((agent) => ({
+        agentId: agent.agentId,
+        name: agent.character?.name,
+        npc_id: Object.keys(loadedNPCCharacter).find(
+            (key) => loadedNPCCharacter[key] === agent
+        ),
+    }));
+    return data;
+};
+
+const getAgentInfoByName = (agentName: string) => {
+    const agent = Object.values(loadedNPCCharacter).find(
+        (agent) =>
+            agent.character?.name?.toLowerCase() === agentName.toLowerCase()
+    );
+
+    if (!agent) {
+        return null;
+    }
+
+    return {
+        agentId: agent.agentId,
+        name: agent.character?.name,
+        npc_id: Object.keys(loadedNPCCharacter).find(
+            (key) => loadedNPCCharacter[key] === agent
+        ),
+    };
+};
+// Create HTTP server
+import express from "express";
+const app = express();
+const port = process.env.PORT || 4000;
+
+// Middleware to parse JSON bodies
+app.use(express.json());
+
+// Basic health check endpoint
+app.get("/health", (req, res) => {
+    // Log the current state of loadedNPCCharacter for debugging
+    const data = getAgentInfo();
+
+    res.json({
+        status: "ok",
+        loadedNPCCharacter: data,
+        // Include additional debug info
+        npcCount: data.length,
+        timestamp: new Date().toISOString(),
+    });
+});
+
+// POST endpoint to handle prompts
+app.post("/prompt", async (req, res) => {
+    try {
+        const { prompt, model } = req.body;
+
+        if (!prompt) {
+            return res.status(400).json({ error: "Prompt is required" });
+        }
+
+        const agent: any = getAgentInfoByName(model);
+        if (!agent) {
+            return res.status(503).json({
+                error: "Agent is not available",
+            });
+        }
+        // Get the runtime agent for the character
+        const runtimeAgent = loadedNPCCharacter[agent?.npc_id];
+
+        if (!runtimeAgent) {
+            return res
+                .status(404)
+                .json({ error: "Character not found or not loaded" });
+        }
+
+        // Process the prompt through the agent
+        const response = await getApiResponse({ prompt }, agent.agentId, model);
+
+        res.json(response);
+    } catch (error) {
+        elizaLogger.error(`Error processing prompt: ${error.message}`);
+        res.status(500).json({
+            success: false,
+            error: "Failed to process prompt",
+        });
+    }
+});
+
+// Start the server
+app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+    elizaLogger.info(`HTTP server started on port ${port}`, new Date());
 });
