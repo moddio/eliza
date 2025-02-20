@@ -1050,11 +1050,13 @@ app.post("/prompt", async (req, res) => {
                 totalResponseTime:
                     currentStats.totalResponseTime + (Date.now() - startTime),
                 lastResponseTime: Date.now(),
-                promptResponseAvgTime: Math.round(
-                    (currentStats.totalResponseTime +
-                        (Date.now() - startTime)) /
+                promptResponseAvgTime: Number(
+                    (
+                        (currentStats.totalResponseTime +
+                            (Date.now() - startTime)) /
                         1000 /
                         (currentStats.promptCount + 1)
+                    ).toFixed(2)
                 ),
             },
         };
