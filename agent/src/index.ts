@@ -864,14 +864,14 @@ const npcSchema = new mongoose.Schema({
 const NPC = mongoose.model("npc", npcSchema);
 let loadedNPCCharacter: any = [];
 
-await NPC.updateMany({}, { status: false });
+await NPC.updateMany({ agentType: "api" }, { status: false });
 
 // Cron job: Runs every minute
 cron.schedule("*/10 * * * * *", async () => {
     //console.log("Cron job started...", new Date());
     try {
         // Fetch all characters with status = 0
-        const npcs = await NPC.find({ status: 0 });
+        const npcs = await NPC.find({ status: 0, agentType: "api" });
 
         if (npcs.length) {
             // const directClient = await DirectClientInterface.start();
