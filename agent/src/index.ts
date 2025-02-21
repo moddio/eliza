@@ -643,7 +643,11 @@ async function startAgent(
             await new Promise((resolve) => setTimeout(resolve, 100));
             try {
                 const summary = JSON.parse(npc.summary);
-                if (npc.agentType === "api") {
+                if (
+                    npc.agentType === "api" &&
+                    summary.system &&
+                    summary.bio.length
+                ) {
                     const fullMetalConfig = {
                         name: character.name,
                         apiKey: "fk-sk-hr0PZ9KPXX7czxFc0V5B",
