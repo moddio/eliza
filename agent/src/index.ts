@@ -675,7 +675,9 @@ async function startAgent(
                     });
 
                     fullmetalAgent.socket.on("connect", async () => {
-                        console.log("Socket ID:", fullmetalAgent.socket.id);
+                        console.log(
+                            `[NPC ${npc.name}]Socket ID: ${fullmetalAgent.socket.id}`
+                        );
                         fullmetalAgent.socket.connectionId =
                             fullmetalAgent.socket.id;
                         npc.socketId = fullmetalAgent.socket.id;
@@ -686,6 +688,7 @@ async function startAgent(
 
                     fullmetalAgent.socket.on("disconnect", async (reason) => {
                         console.log(
+                            npc.name,
                             "Socket ID:",
                             fullmetalAgent.socket.connectionId,
                             reason,
