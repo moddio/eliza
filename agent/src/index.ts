@@ -886,43 +886,47 @@ cron.schedule("*/10 * * * * *", async () => {
             for (const npc of npcs) {
                 try {
                     const character = JSON.parse(npc.summary);
-                    if (loadedNPCCharacter[npc._id]) {
-                        loadedNPCCharacter[npc._id].character = JSON.parse(
-                            npc.summary
-                        );
+                    if (character.system && character.bio.length) {
+                        if (loadedNPCCharacter[npc._id]) {
+                            loadedNPCCharacter[npc._id].character = JSON.parse(
+                                npc.summary
+                            );
 
-                        // add to container
-                        directClient.unregisterAgent(
-                            loadedNPCCharacter[npc._id]
+                            // add to container
+                            directClient.unregisterAgent(
+                                loadedNPCCharacter[npc._id]
+                            );
+                            // start services/plugins/process knowledge
+                            await loadedNPCCharacter[npc._id].stop();
+                            console.log(
+                                `Character ${npc._id} updated successfully`
+                            );
+                        }
+                        // Validate the character JSON
+                        await loadCharacters("", character);
+
+                        await new Promise((resolve) =>
+                            setTimeout(resolve, 100)
                         );
-                        // start services/plugins/process knowledge
-                        await loadedNPCCharacter[npc._id].stop();
+                        // Execute the startAgent method with the validated character
+                        const runtimeAgent = await startAgent(
+                            character,
+                            directClient,
+                            true,
+                            npc
+                        );
+                        loadedNPCCharacter[npc._id] = runtimeAgent;
                         console.log(
-                            `Character ${npc._id} updated successfully`
+                            `*****************************************************`
+                        );
+                        elizaLogger.success(
+                            `Character ${npc._id}-${npc.name} processed successfully`,
+                            new Date()
+                        );
+                        console.log(
+                            `*****************************************************`
                         );
                     }
-                    // Validate the character JSON
-                    await loadCharacters("", character);
-
-                    await new Promise((resolve) => setTimeout(resolve, 100));
-                    // Execute the startAgent method with the validated character
-                    const runtimeAgent = await startAgent(
-                        character,
-                        directClient,
-                        true,
-                        npc
-                    );
-                    loadedNPCCharacter[npc._id] = runtimeAgent;
-                    console.log(
-                        `*****************************************************`
-                    );
-                    elizaLogger.success(
-                        `Character ${npc._id}-${npc.name} processed successfully`,
-                        new Date()
-                    );
-                    console.log(
-                        `*****************************************************`
-                    );
                 } catch (error) {
                     npc.status = 0;
                     npc.socketId = "";
