@@ -104,6 +104,71 @@ import { fileURLToPath } from "url";
 import yargs from "yargs";
 import {dominosPlugin} from "@elizaos/plugin-dominos";
 
+// Changes Doen by MERNinja
+import mongoose from "mongoose";
+import cron from "node-cron";
+import Fullmetal from "fullmetal-agent";
+
+const getApiResponse = async (data, agentId, name, cb) => {
+    // YOUR agent code to generate the resposne
+    try {
+        const serverPort = parseInt(settings.SERVER_PORT || "3000");
+        const startTime = Date.now();
+        let tokenLength = 0;
+        const response = await fetch(
+            `http://localhost:${serverPort}/${agentId}/message`,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    text: data.prompt,
+                    userId: "user",
+                    userName: "User",
+                }),
+            }
+        );
+        const result = await response.json();
+        if (result.length > 0) {
+            const message = result[0];
+            if (message) {
+                elizaLogger.log(`${"Agent"}: ${message.text}`);
+                tokenLength += 1;
+                //cb({ token: message.text });
+                const endTime = Date.now();
+                // Calculate the elapsed time in seconds
+                const elapsedTimeInSeconds = (endTime - startTime) / 1000;
+                const tokensPerSecond = tokenLength / elapsedTimeInSeconds;
+                cb({
+                    token: message.text,
+                    completed: true,
+                    model: name,
+                    elapsedTime: elapsedTimeInSeconds.toFixed(2),
+                    speed: tokensPerSecond.toFixed(2),
+                    promptLength: data.prompt.length,
+                    responseLength: tokenLength,
+                });
+            } else {
+                const endTime = Date.now();
+                // Calculate the elapsed time in seconds
+                const elapsedTimeInSeconds = (endTime - startTime) / 1000;
+                const tokensPerSecond = tokenLength / elapsedTimeInSeconds;
+                cb({
+                    token: null,
+                    completed: true,
+                    model: name,
+                    elapsedTime: elapsedTimeInSeconds.toFixed(2),
+                    speed: tokensPerSecond.toFixed(2),
+                    promptLength: data.prompt.length,
+                    responseLength: tokenLength,
+                });
+            }
+        }
+    } catch (error) {
+        console.error("Error fetching response:", error);
+    }
+    // cb({ token: msg });
+};
+
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
 const __dirname = path.dirname(__filename); // get the name of the directory
 
@@ -152,14 +217,29 @@ function tryLoadFile(filePath: string): string | null {
 function mergeCharacters(base: Character, child: Character): Character {
     const mergeObjects = (baseObj: any, childObj: any) => {
         const result: any = {};
-        const keys = new Set([...Object.keys(baseObj || {}), ...Object.keys(childObj || {})]);
-        keys.forEach(key => {
-            if (typeof baseObj[key] === 'object' && typeof childObj[key] === 'object' && !Array.isArray(baseObj[key]) && !Array.isArray(childObj[key])) {
+        const keys = new Set([
+            ...Object.keys(baseObj || {}),
+            ...Object.keys(childObj || {}),
+        ]);
+        keys.forEach((key) => {
+            if (
+                typeof baseObj[key] === "object" &&
+                typeof childObj[key] === "object" &&
+                !Array.isArray(baseObj[key]) &&
+                !Array.isArray(childObj[key])
+            ) {
                 result[key] = mergeObjects(baseObj[key], childObj[key]);
-            } else if (Array.isArray(baseObj[key]) || Array.isArray(childObj[key])) {
-                result[key] = [...(baseObj[key] || []), ...(childObj[key] || [])];
+            } else if (
+                Array.isArray(baseObj[key]) ||
+                Array.isArray(childObj[key])
+            ) {
+                result[key] = [
+                    ...(baseObj[key] || []),
+                    ...(childObj[key] || []),
+                ];
             } else {
-                result[key] = childObj[key] !== undefined ? childObj[key] : baseObj[key];
+                result[key] =
+                    childObj[key] !== undefined ? childObj[key] : baseObj[key];
             }
         });
         return result;
@@ -174,46 +254,51 @@ async function loadCharacter(filePath: string): Promise<Character> {
     let character = JSON.parse(content);
     validateCharacterConfig(character);
 
-     // .id isn't really valid
-     const characterId = character.id || character.name;
-     const characterPrefix = `CHARACTER.${characterId.toUpperCase().replace(/ /g, "_")}.`;
-     const characterSettings = Object.entries(process.env)
-         .filter(([key]) => key.startsWith(characterPrefix))
-         .reduce((settings, [key, value]) => {
-             const settingKey = key.slice(characterPrefix.length);
-             return { ...settings, [settingKey]: value };
-         }, {});
-     if (Object.keys(characterSettings).length > 0) {
-         character.settings = character.settings || {};
-         character.settings.secrets = {
-             ...characterSettings,
-             ...character.settings.secrets,
-         };
-     }
-     // Handle plugins
-     character.plugins = await handlePluginImporting(
-        character.plugins
-    );
+    // .id isn't really valid
+    const characterId = character.id || character.name;
+    const characterPrefix = `CHARACTER.${characterId.toUpperCase().replace(/ /g, "_")}.`;
+    const characterSettings = Object.entries(process.env)
+        .filter(([key]) => key.startsWith(characterPrefix))
+        .reduce((settings, [key, value]) => {
+            const settingKey = key.slice(characterPrefix.length);
+            return { ...settings, [settingKey]: value };
+        }, {});
+    if (Object.keys(characterSettings).length > 0) {
+        character.settings = character.settings || {};
+        character.settings.secrets = {
+            ...characterSettings,
+            ...character.settings.secrets,
+        };
+    }
+    // Handle plugins
+    character.plugins = await handlePluginImporting(character.plugins);
     if (character.extends) {
-        elizaLogger.info(`Merging  ${character.name} character with parent characters`);
+        elizaLogger.info(
+            `Merging  ${character.name} character with parent characters`
+        );
         for (const extendPath of character.extends) {
-            const baseCharacter = await loadCharacter(path.resolve(path.dirname(filePath), extendPath));
+            const baseCharacter = await loadCharacter(
+                path.resolve(path.dirname(filePath), extendPath)
+            );
             character = mergeCharacters(baseCharacter, character);
-            elizaLogger.info(`Merged ${character.name} with ${baseCharacter.name}`);
+            elizaLogger.info(
+                `Merged ${character.name} with ${baseCharacter.name}`
+            );
         }
     }
     return character;
 }
 
 export async function loadCharacters(
-    charactersArg: string
+    charactersArg: string,
+    inputCharacterContent: any
 ): Promise<Character[]> {
     let characterPaths = charactersArg
         ?.split(",")
         .map((filePath) => filePath.trim());
     const loadedCharacters: Character[] = [];
 
-    if (characterPaths?.length > 0) {
+    if (charactersArg !== "" && characterPaths?.length > 0) {
         for (const characterPath of characterPaths) {
             let content: string | null = null;
             let resolvedPath = "";
@@ -263,7 +348,7 @@ export async function loadCharacters(
                 );
                 elizaLogger.error("Tried the following paths:");
                 pathsToTry.forEach((p) => elizaLogger.error(` - ${p}`));
-                process.exit(1);
+                // process.exit(1);
             }
 
             try {
@@ -277,8 +362,19 @@ export async function loadCharacters(
                 elizaLogger.error(
                     `Error parsing character from ${resolvedPath}: ${e}`
                 );
-                process.exit(1);
+                // process.exit(1);
             }
+        }
+    } else if (inputCharacterContent) {
+        try {
+            validateCharacterConfig(inputCharacterContent);
+
+            elizaLogger.info("Loading character", inputCharacterContent?.name);
+            loadedCharacters.push(inputCharacterContent);
+        } catch (e) {
+            elizaLogger.error(
+                `Error parsing character from Input Character content: ${e}`
+            );
         }
     }
 
@@ -472,7 +568,9 @@ function initializeDatabase(dataDir: string) {
         // Test the connection
         db.init()
             .then(() => {
-                elizaLogger.success("Successfully connected to Supabase database");
+                elizaLogger.success(
+                    "Successfully connected to Supabase database"
+                );
             })
             .catch((error) => {
                 elizaLogger.error("Failed to connect to Supabase:", error);
@@ -489,7 +587,9 @@ function initializeDatabase(dataDir: string) {
         // Test the connection
         db.init()
             .then(() => {
-                elizaLogger.success("Successfully connected to PostgreSQL database");
+                elizaLogger.success(
+                    "Successfully connected to PostgreSQL database"
+                );
             })
             .catch((error) => {
                 elizaLogger.error("Failed to connect to PostgreSQL:", error);
@@ -504,14 +604,17 @@ function initializeDatabase(dataDir: string) {
         });
         return db;
     } else {
-        const filePath = process.env.SQLITE_FILE ?? path.resolve(dataDir, "db.sqlite");
+        const filePath =
+            process.env.SQLITE_FILE ?? path.resolve(dataDir, "db.sqlite");
         elizaLogger.info(`Initializing SQLite database at ${filePath}...`);
         const db = new SqliteDatabaseAdapter(new Database(filePath));
 
         // Test the connection
         db.init()
             .then(() => {
-                elizaLogger.success("Successfully connected to SQLite database");
+                elizaLogger.success(
+                    "Successfully connected to SQLite database"
+                );
             })
             .catch((error) => {
                 elizaLogger.error("Failed to connect to SQLite:", error);
@@ -689,7 +792,8 @@ export async function createAgent(
     if (
         process.env.PRIMUS_APP_ID &&
         process.env.PRIMUS_APP_SECRET &&
-        process.env.VERIFIABLE_INFERENCE_ENABLED === "true"){
+        process.env.VERIFIABLE_INFERENCE_ENABLED === "true"
+    ) {
         verifiableInferenceAdapter = new PrimusAdapter({
             appId: process.env.PRIMUS_APP_ID,
             appSecret: process.env.PRIMUS_APP_SECRET,
@@ -851,9 +955,7 @@ export async function createAgent(
             getSecret(character, "AKASH_WALLET_ADDRESS")
                 ? akashPlugin
                 : null,
-            getSecret(character, "QUAI_PRIVATE_KEY")
-                ? quaiPlugin
-                : null,
+            getSecret(character, "QUAI_PRIVATE_KEY") ? quaiPlugin : null,
         ].filter(Boolean),
         providers: [],
         actions: [],
@@ -938,7 +1040,9 @@ function initializeCache(
 
 async function startAgent(
     character: Character,
-    directClient: DirectClient
+    directClient: DirectClient,
+    isDynamic: Boolean = false,
+    npc?: any
 ): Promise<AgentRuntime> {
     let db: IDatabaseAdapter & IDatabaseCacheAdapter;
     try {
@@ -982,6 +1086,102 @@ async function startAgent(
         // report to console
         elizaLogger.debug(`Started ${character.name} as ${runtime.agentId}`);
 
+        if (isDynamic) {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            try {
+                const summary = JSON.parse(npc.summary);
+                if (
+                    npc.agentType === "api" &&
+                    summary.system &&
+                    summary.bio.length
+                ) {
+                    const fullMetalConfig = {
+                        name: character.name,
+                        apiKey: "fk-sk-hr0PZ9KPXX7czxFc0V5B",
+                        models: [
+                            npc.agentType === "api"
+                                ? `${npc.name.toLowerCase().replace(/\s+/g, "-")}-OpenAI/gpt-4o`
+                                : `${npc.name.toLowerCase().replace(/\s+/g, "-")}-moddio-bot-${summary?.modelProvider ? summary.modelProvider : ""}`,
+                        ],
+                        restartOnDisconnect: false,
+                        npc,
+                    };
+
+                    const fullmetalAgent = new Fullmetal(fullMetalConfig);
+
+                    fullmetalAgent.onPrompt(async (data) => {
+                        await getApiResponse(
+                            data,
+                            runtime.agentId,
+                            character.name,
+                            async (response) => {
+                                // response= {token:'', completed:false, speed:10, model:''Wizard-Vicuna-7B-Uncensored'}
+                                fullmetalAgent.sendResponse(response);
+                            }
+                        );
+                    });
+
+                    fullmetalAgent.socket.on("connect", async () => {
+                        console.log(
+                            `[NPC ${npc.name}]Socket ID: ${fullmetalAgent.socket.id}`
+                        );
+                        fullmetalAgent.socket.connectionId =
+                            fullmetalAgent.socket.id;
+                        npc.socketId = fullmetalAgent.socket.id;
+                        // Optional: Update the status to 1 (processed) to avoid reprocessing
+                        npc.status = 1;
+                        await npc.save();
+                    });
+
+                    fullmetalAgent.socket.on("disconnect", async (reason) => {
+                        console.log(
+                            npc.name,
+                            "Socket ID:",
+                            fullmetalAgent.socket.connectionId,
+                            reason,
+                            "disconnected"
+                        );
+                        const npcData = await NPC.findOneAndUpdate(
+                            { _id: npc._id },
+                            { $set: { socketId: "", status: false } },
+                            { new: true }
+                        );
+                        if (npcData) {
+                            console.log(
+                                `${npcData.name} with ${npcData.socketId} has been disconnected`
+                            );
+                        } else {
+                            console.log(
+                                `No record found for ${fullmetalAgent.socket.connectionId} socketId`
+                            );
+                        }
+                    });
+
+                    fullmetalAgent.onError(async (error) => {
+                        const npcData = await NPC.findOneAndUpdate(
+                            { _id: npc._id },
+                            { $set: { socketId: "", status: false } },
+                            { new: true }
+                        );
+                        if (npcData) {
+                            console.log(
+                                `${npcData.name} with ${npcData.socketId} has been disconnected on error`
+                            );
+                        } else {
+                            console.log(
+                                `No record found for ${fullmetalAgent.socket.connectionId} socketId on error event`
+                            );
+                        }
+                    });
+                } else {
+                    npc.status = 1;
+                    await npc.save();
+                }
+            } catch (ex) {
+                console.log("ERROR: Summary is not valid", ex);
+            }
+        }
+
         return runtime;
     } catch (error) {
         elizaLogger.error(
@@ -1015,8 +1215,8 @@ const checkPortAvailable = (port: number): Promise<boolean> => {
     });
 };
 
+const directClient = new DirectClient();
 const startAgents = async () => {
-    const directClient = new DirectClient();
     let serverPort = parseInt(settings.SERVER_PORT || "3000");
     const args = parseArguments();
     let charactersArg = args.characters || args.character;
@@ -1065,4 +1265,110 @@ const startAgents = async () => {
 startAgents().catch((error) => {
     elizaLogger.error("Unhandled error in startAgents:", error);
     process.exit(1);
+});
+
+// Added by MERNinja
+// MongoDB connection
+mongoose
+    .connect(settings.FULLMETAL_DATABASE)
+    .then(() => console.log("Connected to MongoDB"))
+    .catch((error) => console.error("MongoDB connection error:", error));
+
+// Define the NPC schema and model
+const npcSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        maxlength: 255,
+        required: true,
+    },
+    summary: {
+        type: Object,
+        required: true,
+    },
+    status: {
+        type: Boolean,
+        required: false,
+        default: 0,
+    },
+    socketId: {
+        type: String,
+    },
+    agentType: {
+        type: String,
+    },
+    // Add other relevant fields if necessary
+});
+
+const NPC = mongoose.model("npc", npcSchema);
+let loadedNPCCharacter: any = [];
+
+await NPC.updateMany({ agentType: "api" }, { status: false });
+
+// Cron job: Runs every minute
+cron.schedule("*/30 * * * * *", async () => {
+    //console.log("Cron job started...", new Date());
+    try {
+        // Fetch all characters with status = 0
+        const npcs = await NPC.find({ status: 0, agentType: "api" });
+
+        if (npcs.length) {
+            // const directClient = await DirectClientInterface.start();
+            // Process each character
+            for (const npc of npcs) {
+                try {
+                    const character = JSON.parse(npc.summary);
+                    if (character.system && character.bio.length) {
+                        if (loadedNPCCharacter[npc._id]) {
+                            loadedNPCCharacter[npc._id].character = JSON.parse(
+                                npc.summary
+                            );
+
+                            // add to container
+                            directClient.unregisterAgent(
+                                loadedNPCCharacter[npc._id]
+                            );
+                            // start services/plugins/process knowledge
+                            await loadedNPCCharacter[npc._id].stop();
+                            console.log(
+                                `Character ${npc._id} updated successfully`
+                            );
+                        }
+                        // Validate the character JSON
+                        await loadCharacters("", character);
+
+                        await new Promise((resolve) =>
+                            setTimeout(resolve, 500)
+                        );
+                        // Execute the startAgent method with the validated character
+                        const runtimeAgent = await startAgent(
+                            character,
+                            directClient,
+                            true,
+                            npc
+                        );
+                        loadedNPCCharacter[npc._id] = runtimeAgent;
+                        console.log(
+                            `*****************************************************`
+                        );
+                        elizaLogger.success(
+                            `Character ${npc._id}-${npc.name} processed successfully`,
+                            new Date()
+                        );
+                        console.log(
+                            `*****************************************************`
+                        );
+                    }
+                } catch (error) {
+                    npc.status = false;
+                    npc.socketId = "";
+                    await npc.save();
+                    elizaLogger.error(
+                        `Error processing character ${npc._id}-${npc.name}: ${error.message}`
+                    );
+                }
+            }
+        }
+    } catch (error) {
+        console.error("Error in cron job:", error.message);
+    }
 });
